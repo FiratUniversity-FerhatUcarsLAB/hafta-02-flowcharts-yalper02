@@ -1,0 +1,84 @@
+İsim - Soy isim:Yiğit Alper Ayhan
+Öğrenci No:250542014
+
+digraph E_Ticaret {
+    rankdir=TB;
+    node [fontname="Arial", style=rounded];
+
+    // --- Şekil tanımları ---
+    start [label="BAŞLA", shape=oval, style=filled, fillcolor=lightgreen];
+    end [label="BİTİR", shape=oval, style=filled, fillcolor=lightgray];
+
+    // --- Giriş ---
+    girdi1 [label="Kullanıcı adı ve şifreyi al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    kontrol1 [label="Kullanıcı adı='admin'\nve şifre='1234' mü?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem1 [label="Giriş başarılı", shape=rectangle];
+    cikis1 [label="Hatalı giriş\nProgram sonlanır", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Sepet işlemleri ---
+    islem2 [label="Sepet oluştur (toplamTutar=0)", shape=rectangle];
+    urunGirdi [label="Ürün adı, fiyat ve stok bilgisi al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    stokKontrol [label="Stokta var mı?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem3 [label="Ürünü sepete ekle\ntoplamTutar = toplamTutar + fiyat", shape=rectangle];
+    cikis2 [label="Ürün stokta yok", shape=parallelogram, fillcolor=mistyrose, style=filled];
+    devamKontrol [label="Başka ürün eklensin mi? (E/H)", shape=diamond, fillcolor=lightyellow, style=filled];
+
+    // --- İndirim kodu ---
+    indirimVarMi [label="İndirim kodu var mı? (E/H)", shape=diamond, fillcolor=lightyellow, style=filled];
+    indirimGirdi [label="İndirim kodunu al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    kodKontrol [label="Kod = 'INDIRIM10' mu?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem4 [label="10% indirim uygula", shape=rectangle];
+    cikis3 [label="Geçersiz kod", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Kargo ---
+    kargoKontrol [label="ToplamTutar > 500 mü?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem5 [label="Kargo ücretsiz", shape=rectangle];
+    islem6 [label="Kargo ücreti ekle (50 TL)", shape=rectangle];
+
+    // --- Ödeme ---
+    odemeGirdi [label="Ödeme yöntemi seç (1-KK / 2-Havale)", shape=parallelogram, fillcolor=lightblue, style=filled];
+    odemeKontrol [label="Seçim nedir?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem7 [label="Kredi kartı bilgilerini al\nÖdeme başarılı", shape=rectangle];
+    islem8 [label="Havale bilgilerini gönder", shape=rectangle];
+    cikis4 [label="Geçersiz seçim", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Son ---
+    cikis5 [label="Sipariş tamamlandı\nTeşekkür ederiz!", shape=parallelogram, fillcolor=lightblue, style=filled];
+
+    // --- Akış bağlantıları ---
+    start -> girdi1 -> kontrol1;
+    kontrol1 -> islem1 [label="Evet"];
+    kontrol1 -> cikis1 [label="Hayır"];
+    cikis1 -> end;
+
+    islem1 -> islem2 -> urunGirdi;
+    urunGirdi -> stokKontrol;
+    stokKontrol -> islem3 [label="Evet"];
+    stokKontrol -> cikis2 [label="Hayır"];
+    islem3 -> devamKontrol;
+    cikis2 -> devamKontrol;
+    devamKontrol -> urunGirdi [label="Evet"];
+    devamKontrol -> indirimVarMi [label="Hayır"];
+
+    indirimVarMi -> indirimGirdi [label="Evet"];
+    indirimVarMi -> kargoKontrol [label="Hayır"];
+    indirimGirdi -> kodKontrol;
+    kodKontrol -> islem4 [label="Evet"];
+    kodKontrol -> cikis3 [label="Hayır"];
+    islem4 -> kargoKontrol;
+    cikis3 -> kargoKontrol;
+
+    kargoKontrol -> islem5 [label="Evet"];
+    kargoKontrol -> islem6 [label="Hayır"];
+    islem5 -> odemeGirdi;
+    islem6 -> odemeGirdi;
+
+    odemeGirdi -> odemeKontrol;
+    odemeKontrol -> islem7 [label="1"];
+    odemeKontrol -> islem8 [label="2"];
+    odemeKontrol -> cikis4 [label="Diğer"];
+    islem7 -> cikis5;
+    islem8 -> cikis5;
+    cikis4 -> end;
+    cikis5 -> end;
+}
