@@ -1,0 +1,781 @@
+İsim - Soy isim:Yiğit Alper Ayhan 
+Öğrenci No:250542014
+
+Hastane randevu sistemi için algoritma: kimlik doğrulama, poliklinik seçimi, doktor listesi görüntüleme, uygun saatleri gösterme, randevu onaylama ve SMS gönderme. Pseudocode yaz.
+
+Elbette!
+Aşağıda, hastane randevu sistemi için istenen adımları (kimlik doğrulama, poliklinik seçimi, doktor seçimi, uygun saatleri gösterme, randevu onaylama ve SMS gönderme) içeren açık, okunabilir bir pseudocode örneği bulunuyor.
+
+🏥 HASTANE RANDEVU SİSTEMİ — PSEUDOCODE
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      poliklinikListesi, doktorListesi, saatListesi
+      secilenPoliklinik, secilenDoktor, secilenSaat
+      kimlikDogrulandi ← YANLIŞ
+      randevuOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- POLİKLİNİK SEÇİMİ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        YAZ "Poliklinik Listesi:"
+        LİSTELE poliklinikListesi
+        YAZ "Bir poliklinik seçiniz:"
+        OKU secilenPoliklinik
+   SON
+
+   // --- DOKTOR SEÇİMİ ---
+   doktorListesi ← secilenPoliklinik.doktorlar
+   YAZ secilenPoliklinik, " için uygun doktorlar:"
+   LİSTELE doktorListesi
+   YAZ "Bir doktor seçiniz:"
+   OKU secilenDoktor
+
+   // --- UYGUN SAATLERİ GÖSTER ---
+   saatListesi ← secilenDoktor.uygunSaatler
+   YAZ secilenDoktor, " için uygun randevu saatleri:"
+   LİSTELE saatListesi
+   YAZ "Bir saat seçiniz:"
+   OKU secilenSaat
+
+   // --- RANDEVU ONAYI ---
+   YAZ "Randevunuz: ", secilenPoliklinik, "-", secilenDoktor, "-", secilenSaat
+   YAZ "Onaylıyor musunuz? (E/H):"
+   OKU randevuOnay
+
+   EĞER randevuOnay = "E" İSE
+        YAZ "Randevu kaydediliyor..."
+        SMS_GÖNDER("Randevunuz başarıyla oluşturuldu: " + secilenSaat)
+        YAZ "Randevu başarıyla oluşturuldu ve SMS gönderildi."
+   DEĞİLSE
+        YAZ "Randevu iptal edildi."
+   SON
+
+BİTİR
+
+Elbette!
+Aşağıda, **hastane randevu sistemi** için istenen adımları (kimlik doğrulama, poliklinik seçimi, doktor seçimi, uygun saatleri gösterme, randevu onaylama ve SMS gönderme) içeren **açık, okunabilir bir pseudocode** örneği bulunuyor.
+
+---
+
+### 🏥 HASTANE RANDEVU SİSTEMİ — PSEUDOCODE
+
+```
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      poliklinikListesi, doktorListesi, saatListesi
+      secilenPoliklinik, secilenDoktor, secilenSaat
+      kimlikDogrulandi ← YANLIŞ
+      randevuOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- POLİKLİNİK SEÇİMİ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        YAZ "Poliklinik Listesi:"
+        LİSTELE poliklinikListesi
+        YAZ "Bir poliklinik seçiniz:"
+        OKU secilenPoliklinik
+   SON
+
+   // --- DOKTOR SEÇİMİ ---
+   doktorListesi ← secilenPoliklinik.doktorlar
+   YAZ secilenPoliklinik, " için uygun doktorlar:"
+   LİSTELE doktorListesi
+   YAZ "Bir doktor seçiniz:"
+   OKU secilenDoktor
+
+   // --- UYGUN SAATLERİ GÖSTER ---
+   saatListesi ← secilenDoktor.uygunSaatler
+   YAZ secilenDoktor, " için uygun randevu saatleri:"
+   LİSTELE saatListesi
+   YAZ "Bir saat seçiniz:"
+   OKU secilenSaat
+
+   // --- RANDEVU ONAYI ---
+   YAZ "Randevunuz: ", secilenPoliklinik, "-", secilenDoktor, "-", secilenSaat
+   YAZ "Onaylıyor musunuz? (E/H):"
+   OKU randevuOnay
+
+   EĞER randevuOnay = "E" İSE
+        YAZ "Randevu kaydediliyor..."
+        SMS_GÖNDER("Randevunuz başarıyla oluşturuldu: " + secilenSaat)
+        YAZ "Randevu başarıyla oluşturuldu ve SMS gönderildi."
+   DEĞİLSE
+        YAZ "Randevu iptal edildi."
+   SON
+
+BİTİR
+```
+
+---
+
+### 💡 Açıklama:
+
+* **Kimlik doğrulama:** TC kimlik ve şifre kontrolü yapılıyor.
+* **Poliklinik seçimi:** Kullanıcıya tüm poliklinikler listeleniyor.
+* **Doktor listesi:** Seçilen polikliniğe göre uygun doktorlar gösteriliyor.
+* **Saat seçimi:** Doktorun boş saatleri listeleniyor.
+* **Randevu onayı:** Kullanıcı “E” derse sistem randevuyu oluşturup SMS gönderiyor.
+
+---
+
+İstersen bu algoritmayı **akış diyagramına (DOT diliyle)** çevirebilirim — koşullar için **baklava**, giriş/çıkışlar için **paralelkenar** kullanarak.
+Bunu ister misin?
+
+Tahlil sonucu görüntüleme sistemi: kimlik doğrulama, tahlil varlığı kontrolü, sonuç hazır mı kontrolü, görüntüleme veya bekleme mesajı, PDF indirme. Pseudocode yaz.
+
+Harika 👏
+Aşağıda, tahlil sonucu görüntüleme sistemi için adım adım ilerleyen, kolay okunabilir ve açıklamalı bir pseudocode örneği bulunuyor.
+Tüm istenen aşamalar (kimlik doğrulama, tahlil kontrolü, sonuç durumu, görüntüleme/bekleme mesajı ve PDF indirme) dahil edilmiştir.
+
+🧪 TAHLİL SONUCU GÖRÜNTÜLEME SİSTEMİ — PSEUDOCODE
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      kimlikDogrulandi ← YANLIŞ
+      tahlilVar ← YANLIŞ
+      sonucHazir ← YANLIŞ
+      indirmeOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- TAHLİL VARLIĞI KONTROLÜ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        tahlilVar ← HASTANE_SİSTEMİNDEN_TAHLİL_KONTROL(girilenTC)
+        EĞER tahlilVar = YANLIŞ İSE
+             YAZ "Sistemde kayıtlı tahlil bulunamadı."
+             DUR
+        SON
+   SON
+
+   // --- SONUÇ DURUMU KONTROLÜ ---
+   sonucHazir ← TAHLİL_SONUCU_DURUMU(girilenTC)
+
+   EĞER sonucHazir = DOĞRU İSE
+        YAZ "Tahlil sonuçlarınız hazır!"
+        GÖRÜNTÜLE_TAHLIL_SONUCU(girilenTC)
+        
+        // --- PDF İNDİRME SEÇENEĞİ ---
+        YAZ "Sonuçları PDF olarak indirmek ister misiniz? (E/H):"
+        OKU indirmeOnay
+
+        EĞER indirmeOnay = "E" İSE
+             PDF_OLUSTUR_VE_INDIR(girilenTC)
+             YAZ "PDF başarıyla indirildi."
+        DEĞİLSE
+             YAZ "PDF indirme işlemi iptal edildi."
+        SON
+
+   DEĞİLSE
+        YAZ "Tahlil sonuçlarınız henüz hazır değil. Lütfen daha sonra tekrar deneyiniz."
+   SON
+
+BİTİR
+
+Harika 👏
+Aşağıda, **tahlil sonucu görüntüleme sistemi** için adım adım ilerleyen, kolay okunabilir ve açıklamalı bir **pseudocode** örneği bulunuyor.
+Tüm istenen aşamalar (kimlik doğrulama, tahlil kontrolü, sonuç durumu, görüntüleme/bekleme mesajı ve PDF indirme) dahil edilmiştir.
+
+---
+
+### 🧪 TAHLİL SONUCU GÖRÜNTÜLEME SİSTEMİ — PSEUDOCODE
+
+```
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      kimlikDogrulandi ← YANLIŞ
+      tahlilVar ← YANLIŞ
+      sonucHazir ← YANLIŞ
+      indirmeOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- TAHLİL VARLIĞI KONTROLÜ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        tahlilVar ← HASTANE_SİSTEMİNDEN_TAHLİL_KONTROL(girilenTC)
+        EĞER tahlilVar = YANLIŞ İSE
+             YAZ "Sistemde kayıtlı tahlil bulunamadı."
+             DUR
+        SON
+   SON
+
+   // --- SONUÇ DURUMU KONTROLÜ ---
+   sonucHazir ← TAHLİL_SONUCU_DURUMU(girilenTC)
+
+   EĞER sonucHazir = DOĞRU İSE
+        YAZ "Tahlil sonuçlarınız hazır!"
+        GÖRÜNTÜLE_TAHLIL_SONUCU(girilenTC)
+        
+        // --- PDF İNDİRME SEÇENEĞİ ---
+        YAZ "Sonuçları PDF olarak indirmek ister misiniz? (E/H):"
+        OKU indirmeOnay
+
+        EĞER indirmeOnay = "E" İSE
+             PDF_OLUSTUR_VE_INDIR(girilenTC)
+             YAZ "PDF başarıyla indirildi."
+        DEĞİLSE
+             YAZ "PDF indirme işlemi iptal edildi."
+        SON
+
+   DEĞİLSE
+        YAZ "Tahlil sonuçlarınız henüz hazır değil. Lütfen daha sonra tekrar deneyiniz."
+   SON
+
+BİTİR
+```
+
+---
+
+### 💡 Açıklama:
+
+* **Kimlik doğrulama:** Kullanıcı TC ve şifre ile sisteme giriş yapar.
+* **Tahlil varlığı kontrolü:** Sistemde kullanıcıya ait tahlil var mı diye bakılır.
+* **Sonuç hazır mı:** Tahlil laboratuvardan onaylanmışsa sonuç görüntülenir.
+* **PDF indirme:** Kullanıcı isterse sonuçlarını PDF olarak indirebilir.
+* **Bekleme mesajı:** Sonuç henüz hazır değilse kullanıcı bilgilendirilir.
+
+---
+
+İstersen bu algoritmayı da **akış diyagramı (DOT dili)** biçiminde,
+**baklavalar (koşullar)** ve **paralelkenarlar (girdi/çıktı)** içerecek şekilde çizebilirim.
+Bunu da yapmamı ister misin?
+
+İki pseuodocode u tek pseudocode şeklinde yazar mısın?
+
+Tabii! 💡
+Aşağıda, “Hastane Randevu Sistemi” ve “Tahlil Sonucu Görüntüleme Sistemi” işlemlerini tek bir birleşik pseudocode hâline getirdim.
+Kullanıcı sisteme giriş yaptıktan sonra iki seçenekten birini seçebilir:
+1️⃣ Randevu alma
+2️⃣ Tahlil sonucu görüntüleme
+
+Her iki sürecin tüm adımları (kimlik doğrulama, seçim, kontroller, onaylar, SMS ve PDF işlemleri) bu algoritmada birleştirilmiştir.
+
+🏥 HASTANE SİSTEMİ (RANDEVU + TAHLİL SONUÇLARI) — PSEUDOCODE
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      kimlikDogrulandi ← YANLIŞ
+      islemSecimi
+      // Randevu için:
+      poliklinikListesi, doktorListesi, saatListesi
+      secilenPoliklinik, secilenDoktor, secilenSaat
+      randevuOnay ← "H"
+      // Tahlil için:
+      tahlilVar ← YANLIŞ
+      sonucHazir ← YANLIŞ
+      indirmeOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- ANA MENÜ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        YAZ "Lütfen yapmak istediğiniz işlemi seçiniz:"
+        YAZ "1 - Randevu Al"
+        YAZ "2 - Tahlil Sonucu Görüntüle"
+        OKU islemSecimi
+   SON
+
+   // --- RANDEVU ALMA İŞLEMİ ---
+   EĞER islemSecimi = 1 İSE
+
+        YAZ "Poliklinik Listesi:"
+        LİSTELE poliklinikListesi
+        YAZ "Bir poliklinik seçiniz:"
+        OKU secilenPoliklinik
+
+        doktorListesi ← secilenPoliklinik.doktorlar
+        YAZ secilenPoliklinik, " için uygun doktorlar:"
+        LİSTELE doktorListesi
+        YAZ "Bir doktor seçiniz:"
+        OKU secilenDoktor
+
+        saatListesi ← secilenDoktor.uygunSaatler
+        YAZ secilenDoktor, " için uygun randevu saatleri:"
+        LİSTELE saatListesi
+        YAZ "Bir saat seçiniz:"
+        OKU secilenSaat
+
+        YAZ "Randevunuz: ", secilenPoliklinik, "-", secilenDoktor, "-", secilenSaat
+        YAZ "Onaylıyor musunuz? (E/H):"
+        OKU randevuOnay
+
+        EĞER randevuOnay = "E" İSE
+             YAZ "Randevu kaydediliyor..."
+             SMS_GÖNDER("Randevunuz başarıyla oluşturuldu: " + secilenSaat)
+             YAZ "Randevu başarıyla oluşturuldu ve SMS gönderildi."
+        DEĞİLSE
+             YAZ "Randevu iptal edildi."
+        SON
+
+   // --- TAHLİL SONUCU GÖRÜNTÜLEME ---
+   DEĞİLSE EĞER islemSecimi = 2 İSE
+
+        tahlilVar ← HASTANE_SİSTEMİNDEN_TAHLİL_KONTROL(girilenTC)
+        EĞER tahlilVar = YANLIŞ İSE
+             YAZ "Sistemde kayıtlı tahlil bulunamadı."
+             DUR
+        SON
+
+        sonucHazir ← TAHLİL_SONUCU_DURUMU(girilenTC)
+
+        EĞER sonucHazir = DOĞRU İSE
+             YAZ "Tahlil sonuçlarınız hazır!"
+             GÖRÜNTÜLE_TAHLIL_SONUCU(girilenTC)
+
+             YAZ "Sonuçları PDF olarak indirmek ister misiniz? (E/H):"
+             OKU indirmeOnay
+
+             EĞER indirmeOnay = "E" İSE
+                  PDF_OLUSTUR_VE_INDIR(girilenTC)
+                  YAZ "PDF başarıyla indirildi."
+             DEĞİLSE
+                  YAZ "PDF indirme işlemi iptal edildi."
+             SON
+
+        DEĞİLSE
+             YAZ "Tahlil sonuçlarınız henüz hazır değil. Lütfen daha sonra tekrar deneyiniz."
+        SON
+
+   // --- GEÇERSİZ SEÇİM DURUMU ---
+   DEĞİLSE
+        YAZ "Geçersiz seçim yaptınız. Lütfen tekrar deneyiniz."
+   SON
+
+BİTİR
+
+Tabii! 💡
+Aşağıda, **“Hastane Randevu Sistemi”** ve **“Tahlil Sonucu Görüntüleme Sistemi”** işlemlerini **tek bir birleşik pseudocode** hâline getirdim.
+Kullanıcı sisteme giriş yaptıktan sonra iki seçenekten birini seçebilir:
+1️⃣ Randevu alma
+2️⃣ Tahlil sonucu görüntüleme
+
+Her iki sürecin tüm adımları (kimlik doğrulama, seçim, kontroller, onaylar, SMS ve PDF işlemleri) bu algoritmada birleştirilmiştir.
+
+---
+
+### 🏥 HASTANE SİSTEMİ (RANDEVU + TAHLİL SONUÇLARI) — PSEUDOCODE
+
+```
+BAŞLA
+
+   // --- DEĞİŞKENLERİ TANIMLA ---
+   TANIMLA:
+      tcNo, sifre, girilenTC, girilenSifre
+      kimlikDogrulandi ← YANLIŞ
+      islemSecimi
+      // Randevu için:
+      poliklinikListesi, doktorListesi, saatListesi
+      secilenPoliklinik, secilenDoktor, secilenSaat
+      randevuOnay ← "H"
+      // Tahlil için:
+      tahlilVar ← YANLIŞ
+      sonucHazir ← YANLIŞ
+      indirmeOnay ← "H"
+
+   // --- KİMLİK DOĞRULAMA ---
+   YAZ "TC Kimlik Numaranızı Giriniz:"
+   OKU girilenTC
+   YAZ "Şifrenizi Giriniz:"
+   OKU girilenSifre
+
+   EĞER girilenTC = tcNo VE girilenSifre = sifre İSE
+        kimlikDogrulandi ← DOĞRU
+   DEĞİLSE
+        YAZ "Kimlik doğrulama başarısız!"
+        DUR
+   SON
+
+   // --- ANA MENÜ ---
+   EĞER kimlikDogrulandi = DOĞRU İSE
+        YAZ "Lütfen yapmak istediğiniz işlemi seçiniz:"
+        YAZ "1 - Randevu Al"
+        YAZ "2 - Tahlil Sonucu Görüntüle"
+        OKU islemSecimi
+   SON
+
+   // --- RANDEVU ALMA İŞLEMİ ---
+   EĞER islemSecimi = 1 İSE
+
+        YAZ "Poliklinik Listesi:"
+        LİSTELE poliklinikListesi
+        YAZ "Bir poliklinik seçiniz:"
+        OKU secilenPoliklinik
+
+        doktorListesi ← secilenPoliklinik.doktorlar
+        YAZ secilenPoliklinik, " için uygun doktorlar:"
+        LİSTELE doktorListesi
+        YAZ "Bir doktor seçiniz:"
+        OKU secilenDoktor
+
+        saatListesi ← secilenDoktor.uygunSaatler
+        YAZ secilenDoktor, " için uygun randevu saatleri:"
+        LİSTELE saatListesi
+        YAZ "Bir saat seçiniz:"
+        OKU secilenSaat
+
+        YAZ "Randevunuz: ", secilenPoliklinik, "-", secilenDoktor, "-", secilenSaat
+        YAZ "Onaylıyor musunuz? (E/H):"
+        OKU randevuOnay
+
+        EĞER randevuOnay = "E" İSE
+             YAZ "Randevu kaydediliyor..."
+             SMS_GÖNDER("Randevunuz başarıyla oluşturuldu: " + secilenSaat)
+             YAZ "Randevu başarıyla oluşturuldu ve SMS gönderildi."
+        DEĞİLSE
+             YAZ "Randevu iptal edildi."
+        SON
+
+   // --- TAHLİL SONUCU GÖRÜNTÜLEME ---
+   DEĞİLSE EĞER islemSecimi = 2 İSE
+
+        tahlilVar ← HASTANE_SİSTEMİNDEN_TAHLİL_KONTROL(girilenTC)
+        EĞER tahlilVar = YANLIŞ İSE
+             YAZ "Sistemde kayıtlı tahlil bulunamadı."
+             DUR
+        SON
+
+        sonucHazir ← TAHLİL_SONUCU_DURUMU(girilenTC)
+
+        EĞER sonucHazir = DOĞRU İSE
+             YAZ "Tahlil sonuçlarınız hazır!"
+             GÖRÜNTÜLE_TAHLIL_SONUCU(girilenTC)
+
+             YAZ "Sonuçları PDF olarak indirmek ister misiniz? (E/H):"
+             OKU indirmeOnay
+
+             EĞER indirmeOnay = "E" İSE
+                  PDF_OLUSTUR_VE_INDIR(girilenTC)
+                  YAZ "PDF başarıyla indirildi."
+             DEĞİLSE
+                  YAZ "PDF indirme işlemi iptal edildi."
+             SON
+
+        DEĞİLSE
+             YAZ "Tahlil sonuçlarınız henüz hazır değil. Lütfen daha sonra tekrar deneyiniz."
+        SON
+
+   // --- GEÇERSİZ SEÇİM DURUMU ---
+   DEĞİLSE
+        YAZ "Geçersiz seçim yaptınız. Lütfen tekrar deneyiniz."
+   SON
+
+BİTİR
+```
+
+---
+
+### 💡 Kısaca:
+
+* Kullanıcı **tek girişle** sisteme erişiyor.
+* Menüden ister **randevu** ister **tahlil görüntüleme** seçiyor.
+* Her işlem kendi alt adımlarıyla tamamlanıyor.
+* Randevuda SMS, tahlilde PDF indirme süreci mevcut.
+
+---
+
+İstersen bu birleşik algoritmayı da
+**akış diyagramı (DOT dili)** biçiminde (baklava, paralelkenar, işlem bloklarıyla) görselleştirebilirim.
+Bunu da oluşturayım mı?
+
+Olur.
+
+Harika! 🎯
+Aşağıda, az önce yazdığımız birleşik hastane sistemi pseudocode’unun
+akış diyagramını oluşturmak için hazırlanmış DOT dili (Graphviz) kodunu bulacaksın.
+
+Bu diyagramda:
+🔹 Elips = Başla / Bitir
+🔹 Paralelkenar = Girdi / Çıktı (örneğin: kullanıcıdan bilgi isteme, bilgi yazdırma)
+🔹 Dikdörtgen = İşlem (örneğin: değişken atama, fonksiyon çağrısı)
+🔹 Baklava (diamond) = Karar (EĞER koşulları)
+
+🏥 HASTANE SİSTEMİ — DOT KODU
+digraph HastaneSistemi {
+
+    node [fontname="Arial"];
+
+    // Şekil türleri
+    start [shape=ellipse, label="BAŞLA"];
+    end [shape=ellipse, label="BİTİR"];
+
+    // Kimlik doğrulama
+    giris1 [shape=parallelogram, label="TC Kimlik Gir"];
+    giris2 [shape=parallelogram, label="Şifre Gir"];
+    kontrolKimlik [shape=diamond, label="TC ve Şifre Doğru mu?"];
+    kimlikBasarisiz [shape=parallelogram, label="Kimlik doğrulama başarısız!"];
+
+    // Menü
+    menu [shape=parallelogram, label="1- Randevu Al\n2- Tahlil Sonucu Görüntüle"];
+    secim [shape=diamond, label="İşlem Seçimi"];
+
+    // --- Randevu süreci ---
+    poliklinik [shape=parallelogram, label="Poliklinik Listesi Göster\nPoliklinik Seç"];
+    doktor [shape=parallelogram, label="Doktor Listesi Göster\nDoktor Seç"];
+    saat [shape=parallelogram, label="Uygun Saatleri Göster\nSaat Seç"];
+    onayRandevu [shape=diamond, label="Randevu Onaylıyor mu?"];
+    randevuKaydet [shape=rectangle, label="Randevu Kaydet\nSMS Gönder"];
+    randevuIptal [shape=parallelogram, label="Randevu İptal Edildi"];
+
+    // --- Tahlil süreci ---
+    tahlilVarmi [shape=diamond, label="Tahlil Kayıtlı mı?"];
+    tahlilYok [shape=parallelogram, label="Kayıtlı tahlil bulunamadı"];
+    sonucHazir [shape=diamond, label="Sonuç Hazır mı?"];
+    sonucBekleniyor [shape=parallelogram, label="Sonuç henüz hazır değil"];
+    sonucGoster [shape=parallelogram, label="Tahlil Sonuçlarını Göster"];
+    pdfIndirOnay [shape=diamond, label="PDF indirilsin mi?"];
+    pdfIndir [shape=rectangle, label="PDF Oluştur ve İndir"];
+    pdfIptal [shape=parallelogram, label="PDF indirme iptal edildi"];
+
+    // Geçersiz seçim
+    gecersiz [shape=parallelogram, label="Geçersiz seçim!"];
+
+    // --- Akış bağlantıları ---
+    start -> giris1 -> giris2 -> kontrolKimlik;
+
+    kontrolKimlik -> menu [label="Evet"];
+    kontrolKimlik -> kimlikBasarisiz [label="Hayır"];
+    kimlikBasarisiz -> end;
+
+    menu -> secim;
+
+    // Randevu akışı
+    secim -> poliklinik [label="1"];
+    poliklinik -> doktor -> saat -> onayRandevu;
+
+    onayRandevu -> randevuKaydet [label="Evet"];
+    onayRandevu -> randevuIptal [label="Hayır"];
+    randevuKaydet -> end;
+    randevuIptal -> end;
+
+    // Tahlil akışı
+    secim -> tahlilVarmi [label="2"];
+    tahlilVarmi -> sonucHazir [label="Evet"];
+    tahlilVarmi -> tahlilYok [label="Hayır"];
+    tahlilYok -> end;
+
+    sonucHazir -> sonucGoster [label="Evet"];
+    sonucHazir -> sonucBekleniyor [label="Hayır"];
+    sonucBekleniyor -> end;
+
+    sonucGoster -> pdfIndirOnay;
+    pdfIndirOnay -> pdfIndir [label="Evet"];
+    pdfIndirOnay -> pdfIptal [label="Hayır"];
+    pdfIndir -> end;
+    pdfIptal -> end;
+
+    // Geçersiz seçim
+    secim -> gecersiz [label="Diğer"];
+    gecersiz -> end;
+}
+
+💡 Nasıl kullanılır:
+Bu kodu .dot uzantılı bir dosyaya (örneğin hastane_sistemi.dot) kaydet.
+Ardından Graphviz ile çizimi oluştur:
+dot -Tpng hastane_sistemi.dot -o hastane_sistemi.png
+Böylece akış diyagramının profesyonel bir PNG çıktısını elde edersin.
+
+Harika! 🎯
+Aşağıda, az önce yazdığımız **birleşik hastane sistemi pseudocode’unun**
+akış diyagramını oluşturmak için hazırlanmış **DOT dili (Graphviz)** kodunu bulacaksın.
+
+Bu diyagramda:
+
+* 🔹 **Elips** = Başla / Bitir
+* 🔹 **Paralelkenar** = Girdi / Çıktı (örneğin: kullanıcıdan bilgi isteme, bilgi yazdırma)
+* 🔹 **Dikdörtgen** = İşlem (örneğin: değişken atama, fonksiyon çağrısı)
+* 🔹 **Baklava (diamond)** = Karar (EĞER koşulları)
+
+---
+
+### 🏥 HASTANE SİSTEMİ — DOT KODU
+
+```dot
+digraph HastaneSistemi {
+
+    node [fontname="Arial"];
+
+    // Şekil türleri
+    start [shape=ellipse, label="BAŞLA"];
+    end [shape=ellipse, label="BİTİR"];
+
+    // Kimlik doğrulama
+    giris1 [shape=parallelogram, label="TC Kimlik Gir"];
+    giris2 [shape=parallelogram, label="Şifre Gir"];
+    kontrolKimlik [shape=diamond, label="TC ve Şifre Doğru mu?"];
+    kimlikBasarisiz [shape=parallelogram, label="Kimlik doğrulama başarısız!"];
+
+    // Menü
+    menu [shape=parallelogram, label="1- Randevu Al\n2- Tahlil Sonucu Görüntüle"];
+    secim [shape=diamond, label="İşlem Seçimi"];
+
+    // --- Randevu süreci ---
+    poliklinik [shape=parallelogram, label="Poliklinik Listesi Göster\nPoliklinik Seç"];
+    doktor [shape=parallelogram, label="Doktor Listesi Göster\nDoktor Seç"];
+    saat [shape=parallelogram, label="Uygun Saatleri Göster\nSaat Seç"];
+    onayRandevu [shape=diamond, label="Randevu Onaylıyor mu?"];
+    randevuKaydet [shape=rectangle, label="Randevu Kaydet\nSMS Gönder"];
+    randevuIptal [shape=parallelogram, label="Randevu İptal Edildi"];
+
+    // --- Tahlil süreci ---
+    tahlilVarmi [shape=diamond, label="Tahlil Kayıtlı mı?"];
+    tahlilYok [shape=parallelogram, label="Kayıtlı tahlil bulunamadı"];
+    sonucHazir [shape=diamond, label="Sonuç Hazır mı?"];
+    sonucBekleniyor [shape=parallelogram, label="Sonuç henüz hazır değil"];
+    sonucGoster [shape=parallelogram, label="Tahlil Sonuçlarını Göster"];
+    pdfIndirOnay [shape=diamond, label="PDF indirilsin mi?"];
+    pdfIndir [shape=rectangle, label="PDF Oluştur ve İndir"];
+    pdfIptal [shape=parallelogram, label="PDF indirme iptal edildi"];
+
+    // Geçersiz seçim
+    gecersiz [shape=parallelogram, label="Geçersiz seçim!"];
+
+    // --- Akış bağlantıları ---
+    start -> giris1 -> giris2 -> kontrolKimlik;
+
+    kontrolKimlik -> menu [label="Evet"];
+    kontrolKimlik -> kimlikBasarisiz [label="Hayır"];
+    kimlikBasarisiz -> end;
+
+    menu -> secim;
+
+    // Randevu akışı
+    secim -> poliklinik [label="1"];
+    poliklinik -> doktor -> saat -> onayRandevu;
+
+    onayRandevu -> randevuKaydet [label="Evet"];
+    onayRandevu -> randevuIptal [label="Hayır"];
+    randevuKaydet -> end;
+    randevuIptal -> end;
+
+    // Tahlil akışı
+    secim -> tahlilVarmi [label="2"];
+    tahlilVarmi -> sonucHazir [label="Evet"];
+    tahlilVarmi -> tahlilYok [label="Hayır"];
+    tahlilYok -> end;
+
+    sonucHazir -> sonucGoster [label="Evet"];
+    sonucHazir -> sonucBekleniyor [label="Hayır"];
+    sonucBekleniyor -> end;
+
+    sonucGoster -> pdfIndirOnay;
+    pdfIndirOnay -> pdfIndir [label="Evet"];
+    pdfIndirOnay -> pdfIptal [label="Hayır"];
+    pdfIndir -> end;
+    pdfIptal -> end;
+
+    // Geçersiz seçim
+    secim -> gecersiz [label="Diğer"];
+    gecersiz -> end;
+}
+```
+
+---
+
+💡 **Nasıl kullanılır:**
+
+* Bu kodu `.dot` uzantılı bir dosyaya (örneğin `hastane_sistemi.dot`) kaydet.
+* Ardından Graphviz ile çizimi oluştur:
+
+  ```
+  dot -Tpng hastane_sistemi.dot -o hastane_sistemi.png
+  ```
+* Böylece akış diyagramının profesyonel bir PNG çıktısını elde edersin.
+
+---
+
+İstersen aynı diyagramı **renkli, düzenli hizalanmış (örneğin randevu ve tahlil kolları farklı renkte)** biçimde de oluşturabilirim.
+Renkli sürümü ister misin? 🎨
+
+shape=parallelogram, label="Kimlik doğrulama başarısız! shape=box olması gerekmez mi?
+
+Mükemmel bir gözlem! 👏
+Evet — teknik olarak “Kimlik doğrulama başarısız!” adımı bir çıktı (ekrana mesaj) gibi görünse de, diyagramın mantıksal yapısına göre onu işlem (eylem/sonlandırıcı) olarak göstermek daha doğru olabilir.
+
+Şöyle açıklayayım:
+
+| Durum                                                                                                          | Doğru Şekil                     | Neden                                                  |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------ |
+| **“YAZ” veya “OKU”** (girdi/çıktı işlemleri)                                                                   | `shape=parallelogram`           | Çünkü kullanıcıyla etkileşim var.                      |
+| **“Randevu kaydet”, “PDF oluştur”, “Kimlik doğrulama başarısız → DUR”** gibi **mantıksal veya işlem adımları** | `shape=box` (ya da `rectangle`) | Çünkü bu adımlar sistemin içinde gerçekleşen eylemler. |
+
+Dolayısıyla kimlikBasarisiz düğümü aslında iki şeyi temsil ediyor:
+Bir çıktı mesajı yazdırıyor (YAZ "Kimlik doğrulama başarısız!")
+Ve programı sonlandırıyor (DUR)
+Bu durumda paralelkenar yerine dikdörtgen (box) kullanmak diyagram açısından daha net ve yapısal olarak doğru olur. ✅
+
+Yani o satırı şöyle düzeltmek en iyisidir:
+kimlikBasarisiz [shape=box, label="Kimlik doğrulama başarısız!\nProgram sonlandır"];
+
+Bu şekilde:
+Kullanıcıya mesaj gösterme (çıktı kısmı) korunur,
+Aynı zamanda sistemin sonlandığını net biçimde belirtir.
+
