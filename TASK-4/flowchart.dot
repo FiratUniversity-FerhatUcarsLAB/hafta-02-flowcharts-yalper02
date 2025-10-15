@@ -1,0 +1,78 @@
+İsim - Soy isim:Yiğit Alper Ayhan 
+Öğrenci No:250542014
+
+digraph DersKayitSistemi {
+    rankdir=LR;
+    node [fontname="Arial", fontsize=11];
+
+    // Başlangıç ve bitiş
+    start [shape=circle, label="BAŞLA"];
+    end [shape=doublecircle, label="BİTİR"];
+
+    // Giriş aşaması
+    g1 [shape=parallelogram, label="Öğrenci numarası ve şifre al"];
+    g2 [shape=diamond, label="Kimlik doğrulama doğru mu?"];
+    g3 [shape=box, label="Ders listesini yükle"];
+    g4 [shape=parallelogram, label="Ders listesini göster"];
+
+    // Ders seçimi
+    s1 [shape=diamond, label="Ders seçimi yapmak istiyor mu?"];
+    c1 [shape=diamond, label="Kontenjan uygun mu?"];
+    c2 [shape=diamond, label="Ön koşul sağlanmış mı?"];
+    c3 [shape=diamond, label="Zaman çakışması var mı?"];
+    c4 [shape=diamond, label="Kredi limiti aşıldı mı?"];
+    c5 [shape=box, label="Ders eklendi, kredi güncellendi"];
+    err [shape=box, label="Hata mesajı göster"];
+    tekrar [shape=diamond, label="Yeni ders seçmek istiyor mu?"];
+
+    // Danışman aşaması
+    d1 [shape=diamond, label="Tüm kontroller geçti mi?"];
+    d2 [shape=diamond, label="Danışman onayı gerekli mi?"];
+    d3 [shape=diamond, label="Danışman onayladı mı?"];
+    d4 [shape=box, label="Kayıt tamamlandı"];
+    d5 [shape=box, label="Kayıt reddedildi"];
+
+    // --- Akış ---
+    start -> g1 -> g2;
+    g2 -> g3 [label="Evet"];
+    g2 -> end [label="Hayır"];
+    g3 -> g4 -> s1;
+
+    // Ders seçimi zinciri (sağ yön)
+    s1 -> c1 [label="Evet"];
+    s1 -> d1 [label="Hayır"];
+
+    c1 -> c2 [label="Evet"];
+    c1 -> err [label="Hayır"];
+
+    c2 -> c3 [label="Evet"];
+    c2 -> err [label="Hayır"];
+
+    c3 -> c4 [label="Hayır"];
+    c3 -> err [label="Evet"];
+
+    c4 -> c5 [label="Hayır"];
+    c4 -> err [label="Evet"];
+
+    c5 -> tekrar;
+    err -> tekrar;
+
+    tekrar -> s1 [label="Evet"];
+    tekrar -> d1 [label="Hayır"];
+
+    // Danışman aşaması (sağa doğru)
+    d1 -> d2 [label="Evet"];
+    d1 -> err [label="Hayır"];
+
+    d2 -> d3 [label="Evet"];
+    d2 -> d4 [label="Hayır (otomatik onay)"];
+
+    d3 -> d4 [label="Evet"];
+    d3 -> d5 [label="Hayır"];
+
+    d4 -> end;
+    d5 -> end;
+
+    // Görsel gruplama: akış yönü soldan sağa
+    {rank=same; start; g1; g2; g3; g4; s1; c1; c2; c3; c4; c5; tekrar; d1; d2; d3; d4; d5; end;}
+}
