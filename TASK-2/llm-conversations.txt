@@ -1,0 +1,858 @@
+İsim - Soy isim:Yiğit Alper Ayhan
+Öğrenci No:250542014
+
+E-ticaret sitesinde sepet yönetimi ve ödeme sistemini adım adım açıkla. Kullanıcı girişi, ürün ekleme, stok kontrolü, indirim kodu, kargo hesaplama ve ödeme aşamalarını içermeli.Bu sistemi pseudocode olarak yaz. Döngüler için DÖNGÜ, koşullar için EĞER- İSE kullan. Her adımı BAŞLA ile başlat, BİTİR ile bitir. Tüm kontrol noktalarını belirt
+
+E-ticaret Sepet Yönetimi ve Ödeme — Pseudocode (Türkçe)
+Aşağıda kullanıcı girişi, ürün ekleme, stok kontrolü, indirim kodu, kargo hesaplama ve ödeme dahil olmak üzere tüm adımları BAŞLA / BİTİR, döngüler için DÖNGÜ, koşullar için EĞER - İSE formatında ayrıntılı bir pseudocode olarak verdim. Her adımda önemli KONTROL NOKTASI (hata, doğrulama, timeout, rollback vb.) belirtilmiştir.
+
+# Başlangıç: Genel değişkenler ve yardımcı fonksiyonlar
+BAŞLA GenelTanımlar
+    kullanıcıSession ← NULL
+    sepet ← BOS_LISTE
+    stokRezervasyonlar ← BOS_LISTE
+    ödemeGünlüğü ← BOS_LISTE
+    maksimumGirişDenemesi ← 5
+    maksimumÖdemeDenemesi ← 3
+    ödemeGatewayTimeoutSaniye ← 30
+    kargoKuralları ← YÜKLE_KARGO_TABLOSU()
+    indirimKodları ← YÜKLE_INDİRİM_TABLOSU()
+BİTİR
+
+# 1) Kullanıcı Girişi
+BAŞLA KullanıcıGirişi
+    girişDeneme ← 0
+    DÖNGÜ girişDeneme < maksimumGirişDenemesi İKEN
+        girişDeneme ← girişDeneme + 1
+        KONTROL NOKTASI: "Kullanıcı girişi denemesi: " + girişDeneme
+
+        inputEmail, inputParola ← KULLANICIDAN_AL()
+        EĞER KullanıcıBul(inputEmail) VEŞifreDoğru(inputEmail, inputParola) İSE
+            kullanıcıSession ← OLUŞTUR_SESSION(inputEmail)
+            KONTROL NOKTASI: "Giriş başarılı - session oluşturuldu"
+            HATA_YOK
+            ÇIKIŞ DÖNGÜ
+        DEĞİLSE
+            KONTROL NOKTASI: "Giriş başarısız"
+            EĞER girişDeneme >= maksimumGirişDenemesi İSE
+                LOG("Brute-force şüphesi veya 5 başarısız giriş")
+                GEÇİCİ_ENGELLE(inputEmail)
+                HATA "Hesap geçici kilitlendi"
+                ÇIKIŞ DÖNGÜ
+            DEĞİLSE
+                UYARI "Email veya parola hatalı"
+            BİTİR_EĞER
+        BİTİR_EĞER
+    BITIR_DÖNGÜ
+BİTİR
+
+# 2) Ürün Listeleme ve Seçim (Kullanıcı ürün seçer)
+BAŞLA ÜrünSeçim
+    DÖNGÜ kullanıcıSession VAR İKEN
+        ürünID, adetTalep ← KULLANICIDAN_ÜRÜN_SEÇ()
+        EĞER ürünID = NULL İSE
+            KONTROL NOKTASI: "Kullanıcı ürün seçimini iptal etti"
+            ÇIKIŞ DÖNGÜ
+        BİTİR_EĞER
+
+        KONTROL NOKTASI: "Seçilen ürün: " + ürünID + " Adet: " + adetTalep
+
+        GİZLİ_FONKSİYON: stokDurum ← GET_STOK(ürünID)
+        EĞER stokDurum <= 0 İSE
+            UYARI "Ürün stokta yok"
+            SUGGEST_ALTERNATIF(ürünID)
+            DEVAM ET DÖNGÜ
+        DEĞİLSE
+            EĞER stokDurum < adetTalep İSE
+                UYARI "İstenen adetten az stok var (" + stokDurum + ")"
+                KullanıcıOnayı ← SOR("Mevcut stok: " + stokDurum + ". Bu kadar eklemek ister misiniz?")
+                EĞER KullanıcıOnayı = EVET İSE
+                    adetEklenecek ← stokDurum
+                DEĞİLSE
+                    DEVAM ET DÖNGÜ
+                BİTİR_EĞER
+            DEĞİLSE
+                adetEklenecek ← adetTalep
+            BİTİR_EĞER
+        BİTİR_EĞER
+
+        # Sepete eklemeden önce geçici rezervasyon (race condition önleme)
+        rezervasyonID ← REZERVE_STOK(ürünID, adetEklenecek, kullanıcıSession)
+        EĞER rezervasyonID = HATA İSE
+            UYARI "Stok rezervasyonu yapılamadı — başka kullanıcı güncelledi"
+            GİZLİ_FONKSİYON: refreshStok ← GET_STOK(ürünID)
+            DEVAM ET DÖNGÜ
+        DEĞİLSE
+            sepeteKalem ← {ürünID, adetEklenecek, rezervasyonID, fiyat: GET_FIYAT(ürünID)}
+            sepet.EKLE(sepeteKalem)
+            stokRezervasyonlar.EKLE(rezervasyonID)
+            BİLGİ "Ürün sepete eklendi"
+        BİTİR_EĞER
+    BITIR_DÖNGÜ
+BİTİR
+
+# 3) Sepet Görüntüleme ve Güncelleme
+BAŞLA SepetYönetimi
+    KONTROL NOKTASI: "Sepet gösteriliyor"
+    GÖSTER(sepet)
+    DÖNGÜ True İKEN
+        kullanıcıEylemi ← KULLANICIDAN_SEPET_EYLEM()
+        EĞER kullanıcıEylemi = "adet_güncelle" İSE
+            kalemID, yeniAdet ← alın
+            EĞER yeniAdet <= 0 İSE
+                # Ürünü kaldır
+                KALAN_REZERV ← stokRezervasyonlar.FIND(kalemID)
+                İPTAL_REZERVASYON(kalan_rezerv)
+                sepet.SIL(kalemID)
+                BİLGİ "Ürün sepetten kaldırıldı"
+            DEĞİLSE
+                # Adet değişikliği için stok tekrar kontrolü
+                ürünID ← sepet[kalemID].ürünID
+                mevcutRezervasyon ← sepet[kalemID].rezervasyonID
+                İPTAL_REZERVASYON(mevcutRezervasyon)
+                EĞER GET_STOK(ürünID) >= yeniAdet İSE
+                    yeniRezerv ← REZERVE_STOK(ürünID, yeniAdet, kullanıcıSession)
+                    sepet[kalemID].adet ← yeniAdet
+                    sepet[kalemID].rezervasyonID ← yeniRezerv
+                    BİLGİ "Adet güncellendi"
+                DEĞİLSE
+                    UYARI "Yeterli stok yok"
+                BİTİR_EĞER
+            BİTİR_EĞER
+
+        EĞER kullanıcıEylemi = "indirim_uygula" İSE
+            kod ← KULLANICIDAN_AL_KOD()
+            EĞER DOGRULA_INDİRİM(kod, sepet) İSE
+                sepet.indirim ← HESAPLA_INDİRİM(kod, sepet)
+                sepet.kullanılanIndirimKodu ← kod
+                BİLGİ "İndirim uygulandı"
+            DEĞİLSE
+                UYARI "İndirim kodu geçersiz veya koşulları sağlanmıyor"
+            BİTİR_EĞER
+
+        EĞER kullanıcıEylemi = "kargo_hesapla" İSE
+            adres ← KULLANICIDAN_ADRES()
+            sepet.kargoTahmini ← HESAPLA_KARGO(sepet, adres, kargoKuralları)
+            BİLGİ "Kargo tahmini: " + sepet.kargoTahmini
+        BİTİR_EĞER
+
+        EĞER kullanıcıEylemi = "ödemeye_git" İSE
+            ÇIKIŞ DÖNGÜ
+        BİTİR_EĞER
+
+        EĞER kullanıcıEylemi = "iptal" İSE
+            # tüm rezervasyonları iptal et
+            DÖNGÜ rezerv IN stokRezervasyonlar İKEN
+                İPTAL_REZERVASYON(reserv)
+            BITIR_DÖNGÜ
+            sepet ← BOS_LISTE
+            BİLGİ "Sepet iptal edildi ve rezervasyonlar geri verildi"
+            ÇIKIŞ DÖNGÜ
+        BİTİR_EĞER
+    BITIR_DÖNGÜ
+BİTİR
+
+# 4) Ödeme Öncesi Son Kontroller
+BAŞLA ÖdemeÖncesiKontroller
+    KONTROL NOKTASI: "Ödeme öncesi bütün kontrol noktaları çalıştırılıyor"
+
+    # 4.1 Oturum doğrulama
+    EĞER kullanıcıSession = NULL İSE
+        HATA "Oturum yok — yeniden giriş gereklidir"
+        YÖNLENDIR_LOGIN()
+        DUR
+    BİTİR_EĞER
+
+    # 4.2 Sepet boş mu?
+    EĞER sepet.BOŞ_MU() İSE
+        HATA "Sepet boş - ödeme yapılamaz"
+        YÖNLENDIR_ÜRÜN_LISTESİ()
+        DUR
+    BİTİR_EĞER
+
+    # 4.3 Stok son doğrulama (atomic)
+    DÖNGÜ kalem IN sepet İKEN
+        ürünID ← kalem.ürünID
+        adet ← kalem.adet
+        EĞER GET_STOK(ürünID) < adet İSE
+            HATA "Stok yetersiz: " + ürünID
+            # rollback rezervasyonlar
+            DÖNGÜ r IN stokRezervasyonlar İKEN
+                İPTAL_REZERVASYON(r)
+            BITIR_DÖNGÜ
+            YÖNLENDIR_SEPET_SAYFASI("Stok güncellendi, lütfen tekrar kontrol edin")
+            ÇIKIŞ DÖNGÜ
+        DEĞİLSE
+            KONTROL NOKTASI: ürünID + " için stok doğrulandı"
+        BİTİR_EĞER
+    BITIR_DÖNGÜ
+
+    # 4.4 Fiyat/indirim/kdv hesaplaması
+    sepet.araToplam ← HESAPLA_ARA_TOPLAM(sepet)
+    sepet.indirimTutarı ← HESAPLA_INDİRİM_TUTARI(sepet)
+    sepet.kdv ← HESAPLA_KDV(sepet)
+    sepet.kargo ← sepet.kargoTahmini VEYA HESAPLA_KARGO(sepet, kullanıcıSession.adres, kargoKuralları)
+    sepet.genelToplam ← sepet.araToplam - sepet.indirimTutarı + sepet.kdv + sepet.kargo
+
+    KONTROL NOKTASI: "Ödeme tutarı: " + sepet.genelToplam
+BİTİR
+
+# 5) Ödeme İşlemi
+BAŞLA Ödemeİşlemi
+    ödemeDeneme ← 0
+    DÖNGÜ ödemeDeneme < maksimumÖdemeDenemesi İKEN
+        ödemeDeneme ← ödemeDeneme + 1
+        KONTROL NOKTASI: "Ödeme denemesi: " + ödemeDeneme
+
+        ödemeBilgileri ← KULLANICIDAN_ÖDEME_BILGILERI()
+        EĞER ÖDEME_BILGILERI_GEÇERLİ_Mİ(ödemeBilgileri) = HATA İSE
+            UYARI "Ödeme bilgileri doğrulanamadı"
+            DEVAM ET DÖNGÜ
+        BİTİR_EĞER
+
+        # 5.1 Tüm stokları son kez kilitle (2-phase veya DB transaction)
+        transactionID ← BAŞLAT_TRANSACTION()
+        DÖNGÜ kalem IN sepet İKEN
+            başarı ← TUM_STOK_KILITLE(kalem.ürünID, kalem.adet, transactionID)
+            EĞER başarı = HATA İSE
+                ROLLBACK_TRANSACTION(transactionID)
+                UYARI "Stok kilitleme başarısız"
+                Ç
+
+Anlamadım.Biraz daha basit pseucode yazar mısın?
+
+Tabii 😊 İşte E-ticaret sitesinde sepet yönetimi ve ödeme sistemi için basit, anlaşılır bir pseudocode örneği.
+İçinde kullanıcı girişi, ürün ekleme, stok kontrolü, indirim kodu, kargo hesaplama ve ödeme aşamaları yer alıyor.
+Döngüler için DÖNGÜ, koşullar için EĞER–İSE yapısı kullanıldı.
+
+🛒 E-Ticaret Sepet ve Ödeme Sistemi (Basit Pseudocode)
+BAŞLA
+
+   // --- KULLANICI GİRİŞİ ---
+   YAZ "Kullanıcı adı giriniz:"
+   OKU kullanıcıAdı
+   YAZ "Şifre giriniz:"
+   OKU sifre
+
+   EĞER kullanıcıAdı = "admin" VE sifre = "1234" İSE
+        YAZ "Giriş başarılı!"
+   DEĞİLSE
+        YAZ "Hatalı giriş! Program sonlandırılıyor."
+        BİTİR
+   SON
+
+   // --- SEPET OLUŞTURMA ---
+   TANIMLA sepet ← BOŞ
+   TANIMLA toplamTutar ← 0
+   TANIMLA devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" İKEN
+        YAZ "Ürün adı giriniz:"
+        OKU ürünAdı
+        YAZ "Ürün fiyatını giriniz:"
+        OKU ürünFiyat
+        YAZ "Stokta var mı? (E/H)"
+        OKU stokDurumu
+
+        EĞER stokDurumu = "E" İSE
+             SEPETE_EKLE(ürünAdı)
+             toplamTutar ← toplamTutar + ürünFiyat
+             YAZ "Ürün sepete eklendi."
+        DEĞİLSE
+             YAZ "Ürün stokta yok!"
+        SON
+
+        YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+        OKU devamEt
+   SON
+
+   // --- İNDİRİM KODU KONTROLÜ ---
+   YAZ "İndirim kodunuz var mı? (E/H)"
+   OKU kodDurumu
+
+   EĞER kodDurumu = "E" İSE
+        YAZ "İndirim kodunu giriniz:"
+        OKU indirimKodu
+        EĞER indirimKodu = "INDIRIM10" İSE
+             toplamTutar ← toplamTutar * 0.9
+             YAZ "İndirim uygulandı! Yeni toplam: ", toplamTutar
+        DEĞİLSE
+             YAZ "Geçersiz indirim kodu!"
+        SON
+   SON
+
+   // --- KARGO HESAPLAMA ---
+   EĞER toplamTutar > 500 İSE
+        kargoÜcreti ← 0
+        YAZ "500 TL üzeri alışverişlerde kargo ücretsiz!"
+   DEĞİLSE
+        kargoÜcreti ← 50
+        toplamTutar ← toplamTutar + kargoÜcreti
+        YAZ "Kargo ücreti eklendi. Yeni toplam: ", toplamTutar
+   SON
+
+   // --- ÖDEME AŞAMASI ---
+   YAZ "Ödeme yöntemi seçiniz (1-Kredi Kartı / 2-Havale):"
+   OKU ödemeYöntemi
+
+   EĞER ödemeYöntemi = 1 İSE
+        YAZ "Kart bilgilerinizi giriniz..."
+        YAZ "Ödeme başarılı!"
+   DEĞİLSE EĞER ödemeYöntemi = 2 İSE
+        YAZ "Havale bilgileri e-posta ile gönderildi."
+   DEĞİLSE
+        YAZ "Geçersiz seçim!"
+        BİTİR
+   SON
+
+   YAZ "Siparişiniz alınmıştır. Teşekkür ederiz!"
+
+BİTİR
+
+Tabii 😊 İşte **E-ticaret sitesinde sepet yönetimi ve ödeme sistemi** için **basit, anlaşılır bir pseudocode** örneği.
+İçinde kullanıcı girişi, ürün ekleme, stok kontrolü, indirim kodu, kargo hesaplama ve ödeme aşamaları yer alıyor.
+Döngüler için **DÖNGÜ**, koşullar için **EĞER–İSE** yapısı kullanıldı.
+
+---
+
+### 🛒 **E-Ticaret Sepet ve Ödeme Sistemi (Basit Pseudocode)**
+
+```
+BAŞLA
+
+   // --- KULLANICI GİRİŞİ ---
+   YAZ "Kullanıcı adı giriniz:"
+   OKU kullanıcıAdı
+   YAZ "Şifre giriniz:"
+   OKU sifre
+
+   EĞER kullanıcıAdı = "admin" VE sifre = "1234" İSE
+        YAZ "Giriş başarılı!"
+   DEĞİLSE
+        YAZ "Hatalı giriş! Program sonlandırılıyor."
+        BİTİR
+   SON
+
+   // --- SEPET OLUŞTURMA ---
+   TANIMLA sepet ← BOŞ
+   TANIMLA toplamTutar ← 0
+   TANIMLA devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" İKEN
+        YAZ "Ürün adı giriniz:"
+        OKU ürünAdı
+        YAZ "Ürün fiyatını giriniz:"
+        OKU ürünFiyat
+        YAZ "Stokta var mı? (E/H)"
+        OKU stokDurumu
+
+        EĞER stokDurumu = "E" İSE
+             SEPETE_EKLE(ürünAdı)
+             toplamTutar ← toplamTutar + ürünFiyat
+             YAZ "Ürün sepete eklendi."
+        DEĞİLSE
+             YAZ "Ürün stokta yok!"
+        SON
+
+        YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+        OKU devamEt
+   SON
+
+   // --- İNDİRİM KODU KONTROLÜ ---
+   YAZ "İndirim kodunuz var mı? (E/H)"
+   OKU kodDurumu
+
+   EĞER kodDurumu = "E" İSE
+        YAZ "İndirim kodunu giriniz:"
+        OKU indirimKodu
+        EĞER indirimKodu = "INDIRIM10" İSE
+             toplamTutar ← toplamTutar * 0.9
+             YAZ "İndirim uygulandı! Yeni toplam: ", toplamTutar
+        DEĞİLSE
+             YAZ "Geçersiz indirim kodu!"
+        SON
+   SON
+
+   // --- KARGO HESAPLAMA ---
+   EĞER toplamTutar > 500 İSE
+        kargoÜcreti ← 0
+        YAZ "500 TL üzeri alışverişlerde kargo ücretsiz!"
+   DEĞİLSE
+        kargoÜcreti ← 50
+        toplamTutar ← toplamTutar + kargoÜcreti
+        YAZ "Kargo ücreti eklendi. Yeni toplam: ", toplamTutar
+   SON
+
+   // --- ÖDEME AŞAMASI ---
+   YAZ "Ödeme yöntemi seçiniz (1-Kredi Kartı / 2-Havale):"
+   OKU ödemeYöntemi
+
+   EĞER ödemeYöntemi = 1 İSE
+        YAZ "Kart bilgilerinizi giriniz..."
+        YAZ "Ödeme başarılı!"
+   DEĞİLSE EĞER ödemeYöntemi = 2 İSE
+        YAZ "Havale bilgileri e-posta ile gönderildi."
+   DEĞİLSE
+        YAZ "Geçersiz seçim!"
+        BİTİR
+   SON
+
+   YAZ "Siparişiniz alınmıştır. Teşekkür ederiz!"
+
+BİTİR
+```
+
+---
+
+İstersen bu pseudocode’u bir **akış diyagramı** (flowchart) haline de getirebilirim — görsel olarak daha anlaşılır olur.
+Böyle bir diyagram ister misin?
+
+Neden koşul olmadan döngüye aldık?
+
+Harika soru 👏
+Bu, pseudocode mantığını gerçekten anladığını gösteriyor.
+Şimdi adım adım açıklayayım:
+
+💡 Sorun nerede?
+Kodun şu kısmına bakalım 👇
+
+DÖNGÜ devamEt = "E" İKEN
+     ...
+     YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+     OKU devamEt
+SON
+
+Burada döngü devamEt değişkenine bağlı.
+Yani aslında koşullu bir döngü var:
+Eğer devamEt = "E" ise döngü devam ediyor,
+Değilse döngü bittiği için program bir sonraki aşamaya geçiyor.
+
+🎯 Neden bu mantık kullanılıyor?
+
+E-ticaret sisteminde kullanıcı birden fazla ürün eklemek isteyebilir.
+Ama ne kadar ürün ekleyeceğini biz bilmiyoruz.
+O yüzden “sonsuz döngü” değil,
+“kullanıcının isteğine göre tekrar eden döngü” kullanıyoruz.
+Bu yapı:
+Kullanıcı “E” diyene kadar tekrar eder,
+“H” diyince döngüden çıkar.
+
+🔍 Alternatif (koşullu şekilde yazmak istersen)
+İstersen şu şekilde daha açık biçimde de yazılabilir 👇
+BAŞLA
+   devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" İSE
+        YAZ "Ürün adı giriniz:"
+        OKU ürünAdı
+        ...
+        YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+        OKU devamEt
+   SON
+BİTİR
+
+veya biraz daha "koşullu" bir biçimde:
+
+BAŞLA
+   devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" OLDUĞU SÜRECE
+        ...
+   SON
+BİTİR
+
+Harika soru 👏
+Bu, **pseudocode mantığını gerçekten anladığını** gösteriyor.
+Şimdi adım adım açıklayayım:
+
+---
+
+### 💡 Sorun nerede?
+
+Kodun şu kısmına bakalım 👇
+
+```
+DÖNGÜ devamEt = "E" İKEN
+     ...
+     YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+     OKU devamEt
+SON
+```
+
+Burada döngü **devamEt** değişkenine bağlı.
+Yani aslında **koşullu bir döngü** var:
+
+* Eğer `devamEt = "E"` ise döngü **devam ediyor**,
+* Değilse döngü **bittiği** için program bir sonraki aşamaya geçiyor.
+
+---
+
+### 🎯 Neden bu mantık kullanılıyor?
+
+E-ticaret sisteminde kullanıcı **birden fazla ürün eklemek isteyebilir.**
+Ama ne kadar ürün ekleyeceğini **biz bilmiyoruz**.
+
+O yüzden “sonsuz döngü” değil,
+“kullanıcının isteğine göre tekrar eden döngü” kullanıyoruz.
+
+Bu yapı:
+
+* Kullanıcı “E” diyene kadar tekrar eder,
+* “H” diyince döngüden çıkar.
+
+---
+
+### 🔍 Alternatif (koşullu şekilde yazmak istersen)
+
+İstersen şu şekilde daha açık biçimde de yazılabilir 👇
+
+```
+BAŞLA
+   devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" İSE
+        YAZ "Ürün adı giriniz:"
+        OKU ürünAdı
+        ...
+        YAZ "Başka ürün eklemek ister misiniz? (E/H)"
+        OKU devamEt
+   SON
+BİTİR
+```
+
+veya biraz daha "koşullu" bir biçimde:
+
+```
+BAŞLA
+   devamEt ← "E"
+
+   DÖNGÜ devamEt = "E" OLDUĞU SÜRECE
+        ...
+   SON
+BİTİR
+```
+
+---
+
+### ✅ Özet
+
+* Döngü aslında **koşullu**: devamEt değişkenine bağlı.
+* Kullanıcı “E” dedikçe tekrarlanıyor, “H” deyince bitiyor.
+* Bu yapı, “kaç ürün ekleneceğini bilmediğimiz” durumlar için idealdir.
+
+---
+
+İstersen bu döngüyü **koşul içeren daha net bir versiyon** haline getirip tüm pseudocode’u tekrar sadeleştirerek yazabilirim.
+İster misin o şekilde düzenleyeyim?
+
+DOT diline çevirir misin?
+
+Tabii! 🌟
+Aşağıda, az önceki E-ticaret sepet yönetimi ve ödeme sistemi pseudocode’unun
+DOT (Graphviz) diline çevrilmiş hali yer alıyor.
+
+Bu şema, sürecin akışını görselleştirmek için kullanılabilir.
+.dot dosyasına kaydedip Graphviz
+ veya dreampuf.github.io/GraphvizOnline
+ sitesinde görüntüleyebilirsin.
+
+🟢 E-Ticaret Sistemi – DOT Kodu
+digraph E_Ticaret_Sistemi {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontname="Arial"];
+
+    // Başlangıç ve bitiş
+    START [label="BAŞLA", shape=circle, style=filled, fillcolor=lightgreen];
+    END [label="BİTİR", shape=doublecircle, style=filled, fillcolor=lightgray];
+
+    // Giriş işlemleri
+    GIRIS [label="Kullanıcı adı ve şifreyi al"];
+    GIRIS_KONTROL [label="EĞER kullanıcıAdı='admin' VE sifre='1234'"];
+    GIRIS_BASARILI [label="Giriş başarılı"];
+    GIRIS_HATALI [label="Hatalı giriş\nProgram sonlanır"];
+
+    // Sepet
+    SEPET_OLUSTUR [label="Sepet oluştur\n(toplamTutar=0)"];
+    URUN_EKLE [label="Ürün bilgilerini al\n(stok kontrolü yap)"];
+    URUN_STOK [label="EĞER stokta var mı?"];
+    STOK_VAR [label="Ürünü sepete ekle"];
+    STOK_YOK [label="Ürün stokta yok"];
+
+    DEVAM_MI [label="Başka ürün eklensin mi? (E/H)"];
+    
+    // İndirim kodu
+    INDIRIM_SOR [label="İndirim kodu var mı? (E/H)"];
+    KOD_GIR [label="Kodu al"];
+    KOD_KONTROL [label="EĞER kod='INDIRIM10'"];
+    KOD_GECERLI [label="10% indirim uygula"];
+    KOD_GECERSIZ [label="Geçersiz kod"];
+
+    // Kargo
+    KARGO_KONTROL [label="EĞER toplamTutar>500"];
+    KARGO_UCRETSIZ [label="Kargo ücretsiz"];
+    KARGO_UCRETLİ [label="Kargo ücreti ekle"];
+
+    // Ödeme
+    ODEME_SEC [label="Ödeme yöntemi seç (1-KK / 2-Havale)"];
+    ODEME_KK [label="Kart bilgilerini al\nÖdeme başarılı"];
+    ODEME_HAVALE [label="Havale bilgileri gönder"];
+    ODEME_GECERSIZ [label="Geçersiz seçim"];
+
+    // Sipariş
+    SIPARIS [label="Sipariş tamamlandı\nTeşekkür ederiz!"];
+
+    // --- AKIŞ ---
+    START -> GIRIS -> GIRIS_KONTROL;
+    GIRIS_KONTROL -> GIRIS_BASARILI [label="Doğru"];
+    GIRIS_KONTROL -> GIRIS_HATALI [label="Yanlış"];
+    GIRIS_HATALI -> END;
+    GIRIS_BASARILI -> SEPET_OLUSTUR;
+
+    SEPET_OLUSTUR -> URUN_EKLE;
+    URUN_EKLE -> URUN_STOK;
+    URUN_STOK -> STOK_VAR [label="Evet"];
+    URUN_STOK -> STOK_YOK [label="Hayır"];
+    STOK_VAR -> DEVAM_MI;
+    STOK_YOK -> DEVAM_MI;
+    DEVAM_MI -> URUN_EKLE [label="Evet"];
+    DEVAM_MI -> INDIRIM_SOR [label="Hayır"];
+
+    INDIRIM_SOR -> KOD_GIR [label="Evet"];
+    INDIRIM_SOR -> KARGO_KONTROL [label="Hayır"];
+    KOD_GIR -> KOD_KONTROL;
+    KOD_KONTROL -> KOD_GECERLI [label="Doğru"];
+    KOD_KONTROL -> KOD_GECERSIZ [label="Yanlış"];
+    KOD_GECERLI -> KARGO_KONTROL;
+    KOD_GECERSIZ -> KARGO_KONTROL;
+
+    KARGO_KONTROL -> KARGO_UCRETSIZ [label=">500"];
+    KARGO_KONTROL -> KARGO_UCRETLİ [label="<=500"];
+    KARGO_UCRETSIZ -> ODEME_SEC;
+    KARGO_UCRETLİ -> ODEME_SEC;
+
+    ODEME_SEC -> ODEME_KK [label="1"];
+    ODEME_SEC -> ODEME_HAVALE [label="2"];
+    ODEME_SEC -> ODEME_GECERSIZ [label="Diğer"];
+    ODEME_KK -> SIPARIS;
+    ODEME_HAVALE -> SIPARIS;
+    ODEME_GECERSIZ -> END;
+    SIPARIS -> END;
+}
+
+Bu DOT kodunu kopyalayıp bir .dot dosyası olarak kaydedip şu şekilde görselleştirebilirsin 👇
+dot -Tpng e_ticaret.dot -o e_ticaret.png
+
+Tabii! 🌟
+Aşağıda, az önceki **E-ticaret sepet yönetimi ve ödeme sistemi** pseudocode’unun
+**DOT (Graphviz)** diline çevrilmiş hali yer alıyor.
+
+Bu şema, sürecin akışını görselleştirmek için kullanılabilir.
+`.dot` dosyasına kaydedip [Graphviz](https://graphviz.org/) veya [dreampuf.github.io/GraphvizOnline](https://dreampuf.github.io/GraphvizOnline/) sitesinde görüntüleyebilirsin.
+
+---
+
+### 🟢 **E-Ticaret Sistemi – DOT Kodu**
+
+```dot
+digraph E_Ticaret_Sistemi {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontname="Arial"];
+
+    // Başlangıç ve bitiş
+    START [label="BAŞLA", shape=circle, style=filled, fillcolor=lightgreen];
+    END [label="BİTİR", shape=doublecircle, style=filled, fillcolor=lightgray];
+
+    // Giriş işlemleri
+    GIRIS [label="Kullanıcı adı ve şifreyi al"];
+    GIRIS_KONTROL [label="EĞER kullanıcıAdı='admin' VE sifre='1234'"];
+    GIRIS_BASARILI [label="Giriş başarılı"];
+    GIRIS_HATALI [label="Hatalı giriş\nProgram sonlanır"];
+
+    // Sepet
+    SEPET_OLUSTUR [label="Sepet oluştur\n(toplamTutar=0)"];
+    URUN_EKLE [label="Ürün bilgilerini al\n(stok kontrolü yap)"];
+    URUN_STOK [label="EĞER stokta var mı?"];
+    STOK_VAR [label="Ürünü sepete ekle"];
+    STOK_YOK [label="Ürün stokta yok"];
+
+    DEVAM_MI [label="Başka ürün eklensin mi? (E/H)"];
+    
+    // İndirim kodu
+    INDIRIM_SOR [label="İndirim kodu var mı? (E/H)"];
+    KOD_GIR [label="Kodu al"];
+    KOD_KONTROL [label="EĞER kod='INDIRIM10'"];
+    KOD_GECERLI [label="10% indirim uygula"];
+    KOD_GECERSIZ [label="Geçersiz kod"];
+
+    // Kargo
+    KARGO_KONTROL [label="EĞER toplamTutar>500"];
+    KARGO_UCRETSIZ [label="Kargo ücretsiz"];
+    KARGO_UCRETLİ [label="Kargo ücreti ekle"];
+
+    // Ödeme
+    ODEME_SEC [label="Ödeme yöntemi seç (1-KK / 2-Havale)"];
+    ODEME_KK [label="Kart bilgilerini al\nÖdeme başarılı"];
+    ODEME_HAVALE [label="Havale bilgileri gönder"];
+    ODEME_GECERSIZ [label="Geçersiz seçim"];
+
+    // Sipariş
+    SIPARIS [label="Sipariş tamamlandı\nTeşekkür ederiz!"];
+
+    // --- AKIŞ ---
+    START -> GIRIS -> GIRIS_KONTROL;
+    GIRIS_KONTROL -> GIRIS_BASARILI [label="Doğru"];
+    GIRIS_KONTROL -> GIRIS_HATALI [label="Yanlış"];
+    GIRIS_HATALI -> END;
+    GIRIS_BASARILI -> SEPET_OLUSTUR;
+
+    SEPET_OLUSTUR -> URUN_EKLE;
+    URUN_EKLE -> URUN_STOK;
+    URUN_STOK -> STOK_VAR [label="Evet"];
+    URUN_STOK -> STOK_YOK [label="Hayır"];
+    STOK_VAR -> DEVAM_MI;
+    STOK_YOK -> DEVAM_MI;
+    DEVAM_MI -> URUN_EKLE [label="Evet"];
+    DEVAM_MI -> INDIRIM_SOR [label="Hayır"];
+
+    INDIRIM_SOR -> KOD_GIR [label="Evet"];
+    INDIRIM_SOR -> KARGO_KONTROL [label="Hayır"];
+    KOD_GIR -> KOD_KONTROL;
+    KOD_KONTROL -> KOD_GECERLI [label="Doğru"];
+    KOD_KONTROL -> KOD_GECERSIZ [label="Yanlış"];
+    KOD_GECERLI -> KARGO_KONTROL;
+    KOD_GECERSIZ -> KARGO_KONTROL;
+
+    KARGO_KONTROL -> KARGO_UCRETSIZ [label=">500"];
+    KARGO_KONTROL -> KARGO_UCRETLİ [label="<=500"];
+    KARGO_UCRETSIZ -> ODEME_SEC;
+    KARGO_UCRETLİ -> ODEME_SEC;
+
+    ODEME_SEC -> ODEME_KK [label="1"];
+    ODEME_SEC -> ODEME_HAVALE [label="2"];
+    ODEME_SEC -> ODEME_GECERSIZ [label="Diğer"];
+    ODEME_KK -> SIPARIS;
+    ODEME_HAVALE -> SIPARIS;
+    ODEME_GECERSIZ -> END;
+    SIPARIS -> END;
+}
+```
+
+---
+
+Bu DOT kodunu kopyalayıp bir `.dot` dosyası olarak kaydedip şu şekilde görselleştirebilirsin 👇
+
+```bash
+dot -Tpng e_ticaret.dot -o e_ticaret.png
+```
+
+---
+
+İstersen bu grafiği **renkli ve kategorilere (giriş, sepet, ödeme)** göre **gruplandırılmış (subgraph’lı)** bir sürüm olarak da oluşturabilirim.
+Böylece adımlar kutular halinde daha net olur.
+İster misin o şekilde düzenleyeyim?
+
+Bu DOT kodunda koşullar için baklava kullanılmamış.İnput ve output için de paralelkenar kullanılmamış.Bunların kullanıldığı DOT diline çevirir misin?
+
+Mükemmel dikkat 👏
+Gerçek bir akış diyagramı (flowchart) görünümü istiyorsun —
+yani:
+Başlangıç / bitiş → elips (oval)
+Koşullar → baklava (diamond)
+Girdi / çıktı → paralelkenar
+İşlem adımları → dikdörtgen
+
+Aşağıda, bu kurallara uygun şekilde tam görselleştirilebilir DOT (Graphviz) kodunu verdim.
+Bu haliyle doğrudan Graphviz Online
+ veya Graphviz yazılımında çalışır.
+
+🟦 E-Ticaret Sepet ve Ödeme Sistemi – DOT (Flowchart Tarzı)
+digraph E_Ticaret {
+    rankdir=TB;
+    node [fontname="Arial", style=rounded];
+
+    // --- Şekil tanımları ---
+    start [label="BAŞLA", shape=oval, style=filled, fillcolor=lightgreen];
+    end [label="BİTİR", shape=oval, style=filled, fillcolor=lightgray];
+
+    // --- Giriş ---
+    girdi1 [label="Kullanıcı adı ve şifreyi al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    kontrol1 [label="Kullanıcı adı='admin'\nve şifre='1234' mü?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem1 [label="Giriş başarılı", shape=rectangle];
+    cikis1 [label="Hatalı giriş\nProgram sonlanır", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Sepet işlemleri ---
+    islem2 [label="Sepet oluştur (toplamTutar=0)", shape=rectangle];
+    urunGirdi [label="Ürün adı, fiyat ve stok bilgisi al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    stokKontrol [label="Stokta var mı?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem3 [label="Ürünü sepete ekle\ntoplamTutar = toplamTutar + fiyat", shape=rectangle];
+    cikis2 [label="Ürün stokta yok", shape=parallelogram, fillcolor=mistyrose, style=filled];
+    devamKontrol [label="Başka ürün eklensin mi? (E/H)", shape=diamond, fillcolor=lightyellow, style=filled];
+
+    // --- İndirim kodu ---
+    indirimVarMi [label="İndirim kodu var mı? (E/H)", shape=diamond, fillcolor=lightyellow, style=filled];
+    indirimGirdi [label="İndirim kodunu al", shape=parallelogram, fillcolor=lightblue, style=filled];
+    kodKontrol [label="Kod = 'INDIRIM10' mu?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem4 [label="10% indirim uygula", shape=rectangle];
+    cikis3 [label="Geçersiz kod", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Kargo ---
+    kargoKontrol [label="ToplamTutar > 500 mü?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem5 [label="Kargo ücretsiz", shape=rectangle];
+    islem6 [label="Kargo ücreti ekle (50 TL)", shape=rectangle];
+
+    // --- Ödeme ---
+    odemeGirdi [label="Ödeme yöntemi seç (1-KK / 2-Havale)", shape=parallelogram, fillcolor=lightblue, style=filled];
+    odemeKontrol [label="Seçim nedir?", shape=diamond, fillcolor=lightyellow, style=filled];
+    islem7 [label="Kredi kartı bilgilerini al\nÖdeme başarılı", shape=rectangle];
+    islem8 [label="Havale bilgilerini gönder", shape=rectangle];
+    cikis4 [label="Geçersiz seçim", shape=parallelogram, fillcolor=mistyrose, style=filled];
+
+    // --- Son ---
+    cikis5 [label="Sipariş tamamlandı\nTeşekkür ederiz!", shape=parallelogram, fillcolor=lightblue, style=filled];
+
+    // --- Akış bağlantıları ---
+    start -> girdi1 -> kontrol1;
+    kontrol1 -> islem1 [label="Evet"];
+    kontrol1 -> cikis1 [label="Hayır"];
+    cikis1 -> end;
+
+    islem1 -> islem2 -> urunGirdi;
+    urunGirdi -> stokKontrol;
+    stokKontrol -> islem3 [label="Evet"];
+    stokKontrol -> cikis2 [label="Hayır"];
+    islem3 -> devamKontrol;
+    cikis2 -> devamKontrol;
+    devamKontrol -> urunGirdi [label="Evet"];
+    devamKontrol -> indirimVarMi [label="Hayır"];
+
+    indirimVarMi -> indirimGirdi [label="Evet"];
+    indirimVarMi -> kargoKontrol [label="Hayır"];
+    indirimGirdi -> kodKontrol;
+    kodKontrol -> islem4 [label="Evet"];
+    kodKontrol -> cikis3 [label="Hayır"];
+    islem4 -> kargoKontrol;
+    cikis3 -> kargoKontrol;
+
+    kargoKontrol -> islem5 [label="Evet"];
+    kargoKontrol -> islem6 [label="Hayır"];
+    islem5 -> odemeGirdi;
+    islem6 -> odemeGirdi;
+
+    odemeGirdi -> odemeKontrol;
+    odemeKontrol -> islem7 [label="1"];
+    odemeKontrol -> islem8 [label="2"];
+    odemeKontrol -> cikis4 [label="Diğer"];
+    islem7 -> cikis5;
+    islem8 -> cikis5;
+    cikis4 -> end;
+    cikis5 -> end;
+}
+
+🔍 Nasıl kullanılır?
+Bu kodu .dot dosyasına kaydet:
+e_ticaret_flowchart.dot
+ve sonra terminalde çalıştır:
+dot -Tpng e_ticaret_flowchart.dot -o e_ticaret_flowchart.png
+
+Ya da bu siteye yapıştır:
+👉 https://dreampuf.github.io/GraphvizOnline
