@@ -1,0 +1,59 @@
+İsim - Soy isim:Yiğit Alper Ayhan
+Öğrenci No:250542014
+
+digraph ATM_Para_Çekme_Sistemi {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded, fontsize=10];
+
+    // --- DÜĞÜMLER ---
+    START [label="BAŞLA", shape=ellipse];
+    DEFINE [label="Değişkenleri tanımla:\ndoğruPIN=1234\nbakiye=10000\ngünlükLimit=5000\nkalanHak=3\nnçekilenToplam=0\nişlemTekrarı='E'"];
+    ENTER_PIN [label="PIN gir", shape=parallelogram];
+    CHECK_PIN [label="PIN doğru mu?", shape=diamond];
+    PIN_OK [label="PIN doğrulandı"];
+    PIN_FAIL [label="PIN hatalı\nkalanHak = kalanHak - 1"];
+    TRY_AGAIN [label="Kalan hak > 0 ?", shape=diamond];
+    BLOCKED [label="3 kez hatalı giriş\nKart bloke edildi", shape=ellipse];
+
+    READ_AMOUNT [label="Çekmek istediğiniz tutarı gir", shape=parallelogram];
+    CHECK_20 [label="Tutar 20 TL katı mı?", shape=diamond];
+    ERR_20 [label="Hata: 20 TL katı olmalı"];
+    CHECK_BAL [label="Bakiye yeterli mi?", shape=diamond];
+    ERR_BAL [label="Hata: Yetersiz bakiye"];
+    CHECK_LIMIT [label="tutar ≤ günlükLimit ?", shape=diamond];
+    ERR_LIMIT [label="Hata: Günlük limit aşıldı"];
+    WITHDRAW [label="bakiye = bakiye - tutar", shape=rectangle];
+    SUCCESS [label="İşlem başarılı\ntutar çekildi", shape=parallelogram];
+    ASK_AGAIN [label="Başka işlem yapmak ister misiniz? (E/H)", shape=diamond];
+    CARD_OUT [label="Kartınızı almayı unutmayınız", shape=parallelogram];
+    END [label="BİTİR", shape=ellipse];
+
+    // --- AKIŞLAR ---
+    START -> DEFINE -> ENTER_PIN;
+    ENTER_PIN -> CHECK_PIN;
+    CHECK_PIN -> PIN_OK [label="Evet"];
+    CHECK_PIN -> PIN_FAIL [label="Hayır"];
+    PIN_FAIL -> TRY_AGAIN;
+    TRY_AGAIN -> ENTER_PIN [label="Evet"];
+    TRY_AGAIN -> BLOCKED [label="Hayır"];
+
+    // --- PARA ÇEKME DÖNGÜSÜ ---
+    PIN_OK -> READ_AMOUNT;
+    READ_AMOUNT -> CHECK_20;
+    CHECK_20 -> ERR_20 [label="Hayır"];
+    ERR_20 -> READ_AMOUNT;
+
+    CHECK_20 -> CHECK_BAL [label="Evet"];
+    CHECK_BAL -> ERR_BAL [label="Hayır"];
+    ERR_BAL -> READ_AMOUNT;
+
+    CHECK_BAL -> CHECK_LIMIT [label="Evet"];
+    CHECK_LIMIT -> ERR_LIMIT [label="Hayır"];
+    ERR_LIMIT -> READ_AMOUNT;
+
+    CHECK_LIMIT -> WITHDRAW [label="Evet"];
+    WITHDRAW -> SUCCESS -> ASK_AGAIN;
+    ASK_AGAIN -> READ_AMOUNT [label="E"];
+    ASK_AGAIN -> CARD_OUT [label="H"];
+    CARD_OUT -> END;
+}
