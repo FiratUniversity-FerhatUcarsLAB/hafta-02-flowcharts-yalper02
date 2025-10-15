@@ -1,0 +1,5 @@
+İsim - Soy isim:Yiğit Alper Ayhan
+Öğrenci No:250542014
+
+Alışveriş sisteminde kullanıcı adı ve şifreyi almamız gerekiyor.Bunları aldıktan sonra sisteme girince bizi koşul karşılıyor.Giriş başarılı değilse program sonlanır.Giriş başarılı ise bir sonraki aşama olarak sepetoluştururuz.Sonra
+ekleyeceğimiz ürünün adını,fiyatını ve stok bilgisini alırız.Ürün stokta varsa sepete ekleriz.Ürün stokta yoksa başka ürünlere bakarız.Bir ürün ekledikten sonra başka ürün eklemek istiyorsak.Yine başka ürünlere bakarız.Eğer ürün eklemek istemiyorsak sonraki aşama olan indirim koduna bakarız.Eğer indirim kodu varsa indirim kodunu alırız.Diyelim ki aldığımız indirim kodu 'INDIRIM10'olsun.Eğer bir üründe o kod geçerliyse ürüne %10 indirim uygulanır.Sonra sepetimizi doldurduktan sonra toplam tutar 500 TL'den büyük mü?Büyük ise kargo ücretsiz.Küçük ise kargo ücreti eklenir.Sonraki aşamada ödeme yöntemi seçeriz.İki adet ödeme yöntemi vardır.Birincisi KK,ikincisi ise Havale.KK ile ödeme yaparsak kredi kartı bilgileri alınıp ödeme başarılı olur.Havale ile ödeme yaparsak havale bilgilerini gönderip ödeme yapılır.
