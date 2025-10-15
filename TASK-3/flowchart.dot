@@ -1,0 +1,80 @@
+İsim - Soy isim:Yiğit Alper Ayhan 
+Öğrenci No:250542014
+
+digraph HastaneSistemi {
+
+    node [fontname="Arial"];
+
+    // Şekil türleri
+    start [shape=ellipse, label="BAŞLA"];
+    end [shape=ellipse, label="BİTİR"];
+
+    // Kimlik doğrulama
+    giris1 [shape=parallelogram, label="TC Kimlik Gir"];
+    giris2 [shape=parallelogram, label="Şifre Gir"];
+    kontrolKimlik [shape=diamond, label="TC ve Şifre Doğru mu?"];
+    kimlikBasarisiz [shape=parallelogram, label="Kimlik doğrulama başarısız!"];
+
+    // Menü
+    menu [shape=parallelogram, label="1- Randevu Al\n2- Tahlil Sonucu Görüntüle"];
+    secim [shape=diamond, label="İşlem Seçimi"];
+
+    // --- Randevu süreci ---
+    poliklinik [shape=parallelogram, label="Poliklinik Listesi Göster\nPoliklinik Seç"];
+    doktor [shape=parallelogram, label="Doktor Listesi Göster\nDoktor Seç"];
+    saat [shape=parallelogram, label="Uygun Saatleri Göster\nSaat Seç"];
+    onayRandevu [shape=diamond, label="Randevu Onaylıyor mu?"];
+    randevuKaydet [shape=rectangle, label="Randevu Kaydet\nSMS Gönder"];
+    randevuIptal [shape=parallelogram, label="Randevu İptal Edildi"];
+
+    // --- Tahlil süreci ---
+    tahlilVarmi [shape=diamond, label="Tahlil Kayıtlı mı?"];
+    tahlilYok [shape=parallelogram, label="Kayıtlı tahlil bulunamadı"];
+    sonucHazir [shape=diamond, label="Sonuç Hazır mı?"];
+    sonucBekleniyor [shape=parallelogram, label="Sonuç henüz hazır değil"];
+    sonucGoster [shape=parallelogram, label="Tahlil Sonuçlarını Göster"];
+    pdfIndirOnay [shape=diamond, label="PDF indirilsin mi?"];
+    pdfIndir [shape=rectangle, label="PDF Oluştur ve İndir"];
+    pdfIptal [shape=parallelogram, label="PDF indirme iptal edildi"];
+
+    // Geçersiz seçim
+    gecersiz [shape=parallelogram, label="Geçersiz seçim!"];
+
+    // --- Akış bağlantıları ---
+    start -> giris1 -> giris2 -> kontrolKimlik;
+
+    kontrolKimlik -> menu [label="Evet"];
+    kontrolKimlik -> kimlikBasarisiz [label="Hayır"];
+    kimlikBasarisiz -> end;
+
+    menu -> secim;
+
+    // Randevu akışı
+    secim -> poliklinik [label="1"];
+    poliklinik -> doktor -> saat -> onayRandevu;
+
+    onayRandevu -> randevuKaydet [label="Evet"];
+    onayRandevu -> randevuIptal [label="Hayır"];
+    randevuKaydet -> end;
+    randevuIptal -> end;
+
+    // Tahlil akışı
+    secim -> tahlilVarmi [label="2"];
+    tahlilVarmi -> sonucHazir [label="Evet"];
+    tahlilVarmi -> tahlilYok [label="Hayır"];
+    tahlilYok -> end;
+
+    sonucHazir -> sonucGoster [label="Evet"];
+    sonucHazir -> sonucBekleniyor [label="Hayır"];
+    sonucBekleniyor -> end;
+
+    sonucGoster -> pdfIndirOnay;
+    pdfIndirOnay -> pdfIndir [label="Evet"];
+    pdfIndirOnay -> pdfIptal [label="Hayır"];
+    pdfIndir -> end;
+    pdfIptal -> end;
+
+    // Geçersiz seçim
+    secim -> gecersiz [label="Diğer"];
+    gecersiz -> end;
+}
