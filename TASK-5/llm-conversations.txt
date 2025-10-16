@@ -1,0 +1,737 @@
+İsim - Soy isim:Yiğit Alper Ayhan 
+Öğrenci No:250542014
+
+Akıllı ev güvenlik sistemi 7/24 çalışır. Ana döngü içinde sensör okuma,tehdit algılama, alarm verme ve bildirim gönderme süreçlerini içeren pseudocode yaz.
+
+Aşağıda 7/24 çalışan, ana döngüsü içinde sensör okuma, tehdit algılama, alarm verme ve bildirim gönderme süreçlerini içeren kapsamlı ama okunaklı bir pseudocode var. Gerçek uygulamada her fonksiyon donanım/SDK bağımlı olacağından onlar soyutlanmış olarak gösterildi — istersen bunları gerçek API çağrılarına dönüştürebiliriz.
+
+/* Akıllı Ev Güvenlik Sistemi - PSEUDOCODE
+   Çalışma: 7/24 ana döngü (main loop)
+   İşlevler: Sensör okuma, tehdit algılama, alarm, bildirim, kayıt, sağlık kontrolleri
+*/
+
+BAŞLA
+
+// --- KONSTANTLAR & AYARLAR ---
+TANImla POLLING_INTERVAL ← 1000 ms        // Ana döngü bekleme süresi
+TANImla NOTIF_RATE_LIMIT ← 60 saniye      // Aynı olaya bildirim yollama aralığı
+TANImla ALARM_DURATION ← 180 saniye       // Alarmın otomatik devam süresi
+TANImla SNOOZE_WINDOW ← 300 saniye        // Kullanıcı alarmı erteleme süresi
+TANImla SENSOR_TIMEOUT ← 5000 ms          // Sensör cevap süresi
+TANImla MAX_NOTIFICATION_RETRIES ← 3
+
+// --- DURUMLAR ---
+TANImla sistemDurumu ← "AKTIF"            // AKTIF / BAKIM / KAPALI
+TANImla kullanıcıOnaylıDevreDisi ← HAYIR  // Kullanıcı tarafından devre dışı ise HAYIR
+
+// --- VERİ YAPILARI ---
+TANImla sensörler ← [
+  {id: "door_front", type: "contact", lastSeen: 0, healthy: TRUE},
+  {id: "motion_living", type: "motion", lastSeen: 0, healthy: TRUE},
+  {id: "smoke_kitchen", type: "smoke", lastSeen: 0, healthy: TRUE},
+  {id: "co_sensor", type: "co", lastSeen: 0, healthy: TRUE},
+  {id: "water_basement", type: "water", lastSeen: 0, healthy: TRUE},
+  {id: "camera_back", type: "camera", lastSeen: 0, healthy: TRUE}
+]
+
+TANImla eventLog ← boş liste
+TANImla lastNotificationTimeByEvent ← boş sözlük  // eventKey -> zaman
+
+// --- YARDIMCI FONKSİYONLAR ---
+FONKSİYON now() → zaman
+FONKSİYON sleep(ms)  // bekle
+FONKSİYON readSensor(sensor) → {ok: TRUE/FALSE, value: ..., timestamp: ...}
+FONKSİYON logEvent(event) 
+    eventLog.append(event)
+    // gerektiğinde kalıcı depoya yaz
+
+FONKSİYON isRateLimited(eventKey) → TRUE/FALSE
+    eTime ← lastNotificationTimeByEvent.get(eventKey, 0)
+    DÖNGÜ eTime + NOTIF_RATE_LIMIT > now()
+        DÖNGÜDEN ÇIK
+    DONDER FALSE
+
+FONKSİYON updateNotificationTime(eventKey)
+    lastNotificationTimeByEvent[eventKey] ← now()
+
+FONKSİYON sendNotification(toList, title, body, data) → başarı
+    deneme ← 0
+    WHILE deneme < MAX_NOTIFICATION_RETRIES
+        TRY
+            // push, sms, call gibi yolları sırayla dener
+            sonuc ← pushService.send(toList, title, body, data)
+            IF sonuc = SUCCESS 
+                DONDER TRUE
+        HATA
+            deneme ← deneme + 1
+            sleep(1000 * deneme) // artan bekleme
+    DONDER FALSE
+
+FONKSİYON triggerAlarm(alarmType)
+    // Siren, ışık, kamera kayıt, otomatik kapı kilitleme vb.
+    alarmController.activate(alarmType)
+    logEvent({type: "ALARM_TRIGGERED", alarmType: alarmType, time: now()})
+    // otomatk durdurma mekanizması
+    alarmEndTime ← now() + ALARM_DURATION
+    WHILE now() < alarmEndTime AND systemState != "ALARM_SILENCED"
+        sleep(500)
+    alarmController.deactivate(alarmType)
+    logEvent({type: "ALARM_ENDED", alarmType: alarmType, time: now()})
+
+FONKSİYON classifyThreat(sensorReadings) → threat
+    // Basit kurallar; ML varsa burası sorunsuzca değişir
+    EĞER sensorReadings.contains(smoke) VE smoke.level >= SMOKE_THRESHOLD İSE
+        DONDER {level: "CRITICAL", category: "YANGIN", sources: [...]}
+    EĞER sensorReadings.contains(co) VE co.ppm >= CO_THRESHOLD İSE
+        DONDER {level: "CRITICAL", category: "ZEHIRLENME", sources: [...]}
+    EĞER motionDetected VE doorContactOpen VE saat_gece_ise İSE
+        DONDER {level: "HIGH", category: "IZINSIZ_GIRIS", sources: [...]}
+    EĞER motionDetected SADECE İSE
+        DONDER {level: "MEDIUM", category: "HAREKET", sources: [...]}
+    DONDER NULL
+
+FONKSİYON checkSensorHealth()
+    FOR each sensor IN sensörler
+        IF now() - sensor.lastSeen > SENSOR_TIMEOUT
+            sensor.healthy ← FALSE
+            logEvent({type:"SENSOR_TIMEOUT", id: sensor.id, time: now()})
+        ELSE sensor.healthy ← TRUE
+
+// --- ANA DÖNGÜ ---
+DÖNGÜ sistemDurumu = "AKTIF"
+    // kullanıcının sistemi kapatıp kapatmadığını kontrol et
+    EĞER kullanıcıOnaylıDevreDisi = EVET İSE
+        sleep(POLLING_INTERVAL)
+        DEVAM ET
+
+    // 1) Sensörleri oku
+    sensorReads ← boş liste
+    FOR each sensor IN sensörler
+        result ← readSensor(sensor)
+        EĞER result.ok = TRUE İSE
+            sensor.lastSeen ← result.timestamp
+            sensor.healthy ← TRUE
+            sensorReads.append({id: sensor.id, type: sensor.type, value: result.value, time: result.timestamp})
+        DEĞILSE
+            sensor.healthy ← FALSE
+            logEvent({type:"SENSOR_READ_FAIL", id: sensor.id, time: now()})
+        FİN
+
+    // 1.1) Sensör sağlığı denetimi periyodik olarak yap (ör. her döngü)
+    checkSensorHealth()
+
+    // 2) Tehdit algılama / sınıflandırma
+    threat ← classifyThreat(sensorReads)
+
+    EĞER threat != NULL İSE
+        eventKey ← threat.category + "_" + threat.level
+        logEvent({type:"THREAT_DETECTED", threat: threat, time: now()})
+
+        // 2.1) Yanlış pozitif azaltma (örnek: hareket dedektöründe gece/gündüz, kamera doğrulama)
+        EĞER threat.category = "HAREKET" VE kamera_varsa DOĞRULA İSE
+            kamImage ← camera.captureRelevantFrames()
+            doğrulama ← analyzeImageForHuman(kamImage)
+            EĞER doğrulama = FALSE İSE
+                // olası yanlış pozitif: bildirim sınırlandırılabilir
+                logEvent({type:"FALSE_POSITIVE_SUSPECT", detail: sensorReads, time: now()})
+                // küçük bildirim veya bekle
+                IF NOT isRateLimited(eventKey)
+                    sendNotification(userContacts, "Hareket Algılandı (şüpheli)", "Sistemde şüpheli hareket algılandı, doğrulama bekleniyor", {threat})
+                    updateNotificationTime(eventKey)
+                FİN
+                GIT main_loop_continue
+            FİN
+        FİN
+
+        // 3) Alarm verme kararı & uygulama
+        EĞER threat.level IN ["CRITICAL", "HIGH"] İSE
+            // Alarmı tetikle
+            triggerAlarm(threat.category)
+
+            // 4) Bildirim gönderme (kullanıcı, acil durum kontakları, güvenlik şirketi)
+            IF NOT isRateLimited(eventKey)
+                message ← formatThreatMessage(threat, sensorReads)
+                başarı ← sendNotification(userContacts + emergencyContacts, "Acil: " + threat.category, message, {threat, sensorReads})
+                IF başarı = TRUE
+                    updateNotificationTime(eventKey)
+                ELSE
+                    logEvent({type:"NOTIFICATION_FAILED", eventKey: eventKey, time: now()})
+                FİN
+            FİN
+
+            // 4.1) Gerekirse acil çağrı
+            IF threat.level = "CRITICAL" VE kullanıcıOnaylıDevreDisi = HAYIR İSE
+                callSuccess ← callEmergencyServices(threat, adresBilgisi)
+                IF callSuccess = TRUE
+                    logEvent({type:"EMERGENCY_CALL_PLACED", time: now()})
+                ELSE
+                    logEvent({type:"EMERGENCY_CALL_FAILED", time: now()})
+                FİN
+            FİN
+
+        EĞER threat.level = "MEDIUM" İSE
+            // Sakin bildirim / bekle / kullanıcıya onay sor
+            IF NOT isRateLimited(eventKey)
+                sendNotification(userContacts, "Uyarı: " + threat.category, "Orta öncelikli tehdit algılandı. Kontrol ediniz.", {threat})
+                updateNotificationTime(eventKey)
+            FİN
+        FİN
+
+    DEĞILSE
+        // Normal durum: periyodik sağlık ve bağlantı kontrolleri
+        IF zaman % (60 * 1000) = 0 İSE  // her 60 saniyede bir
+            sendHeartbeatIfNeeded()
+            performScheduledMaintenanceChecks()
+        FİN
+    FİN
+
+    // 5) Kayıt & raporlama
+    flushLogsPeriodically()
+
+    // 6) Döngü bekle
+    sleep(POLLING_INTERVAL)
+DÖNGÜSONU
+
+// --- EK FONKSİYONLAR / NOTLAR ---
+FONKSİYON formatThreatMessage(threat, sensorReads)
+    mesaj ← "Tehdit tipi: " + threat.category + "\nSeviye: " + threat.level + "\nZaman: " + now() + "\nKaynaklar: " + listSources(sensorReads)
+    DONDER mesaj
+
+FONKSİYON sendHeartbeatIfNeeded()
+    // Sistem sağlığı ve bağlantı durumunu buluta bildir
+    status ← collectSystemStatus()
+    cloud.send("heartbeat", status)
+
+FONKSİYON performScheduledMaintenanceChecks()
+    // Batarya seviyeleri, ağ bağlantısı, disk alanı, kamera kayıt sağlığı
+    health ← collectDetailedHealth()
+    IF health.hasCriticalIssues THEN
+        notifyAdmin(health.issues)
+
+BİTİŞ
+
+
+Aşağıda 7/24 çalışan, ana döngüsü içinde sensör okuma, tehdit algılama, alarm verme ve bildirim gönderme süreçlerini içeren kapsamlı ama okunaklı bir pseudocode var. Gerçek uygulamada her fonksiyon donanım/SDK bağımlı olacağından onlar soyutlanmış olarak gösterildi — istersen bunları gerçek API çağrılarına dönüştürebiliriz.
+
+```
+/* Akıllı Ev Güvenlik Sistemi - PSEUDOCODE
+   Çalışma: 7/24 ana döngü (main loop)
+   İşlevler: Sensör okuma, tehdit algılama, alarm, bildirim, kayıt, sağlık kontrolleri
+*/
+
+BAŞLA
+
+// --- KONSTANTLAR & AYARLAR ---
+TANImla POLLING_INTERVAL ← 1000 ms        // Ana döngü bekleme süresi
+TANImla NOTIF_RATE_LIMIT ← 60 saniye      // Aynı olaya bildirim yollama aralığı
+TANImla ALARM_DURATION ← 180 saniye       // Alarmın otomatik devam süresi
+TANImla SNOOZE_WINDOW ← 300 saniye        // Kullanıcı alarmı erteleme süresi
+TANImla SENSOR_TIMEOUT ← 5000 ms          // Sensör cevap süresi
+TANImla MAX_NOTIFICATION_RETRIES ← 3
+
+// --- DURUMLAR ---
+TANImla sistemDurumu ← "AKTIF"            // AKTIF / BAKIM / KAPALI
+TANImla kullanıcıOnaylıDevreDisi ← HAYIR  // Kullanıcı tarafından devre dışı ise HAYIR
+
+// --- VERİ YAPILARI ---
+TANImla sensörler ← [
+  {id: "door_front", type: "contact", lastSeen: 0, healthy: TRUE},
+  {id: "motion_living", type: "motion", lastSeen: 0, healthy: TRUE},
+  {id: "smoke_kitchen", type: "smoke", lastSeen: 0, healthy: TRUE},
+  {id: "co_sensor", type: "co", lastSeen: 0, healthy: TRUE},
+  {id: "water_basement", type: "water", lastSeen: 0, healthy: TRUE},
+  {id: "camera_back", type: "camera", lastSeen: 0, healthy: TRUE}
+]
+
+TANImla eventLog ← boş liste
+TANImla lastNotificationTimeByEvent ← boş sözlük  // eventKey -> zaman
+
+// --- YARDIMCI FONKSİYONLAR ---
+FONKSİYON now() → zaman
+FONKSİYON sleep(ms)  // bekle
+FONKSİYON readSensor(sensor) → {ok: TRUE/FALSE, value: ..., timestamp: ...}
+FONKSİYON logEvent(event) 
+    eventLog.append(event)
+    // gerektiğinde kalıcı depoya yaz
+
+FONKSİYON isRateLimited(eventKey) → TRUE/FALSE
+    eTime ← lastNotificationTimeByEvent.get(eventKey, 0)
+    DÖNGÜ eTime + NOTIF_RATE_LIMIT > now()
+        DÖNGÜDEN ÇIK
+    DONDER FALSE
+
+FONKSİYON updateNotificationTime(eventKey)
+    lastNotificationTimeByEvent[eventKey] ← now()
+
+FONKSİYON sendNotification(toList, title, body, data) → başarı
+    deneme ← 0
+    WHILE deneme < MAX_NOTIFICATION_RETRIES
+        TRY
+            // push, sms, call gibi yolları sırayla dener
+            sonuc ← pushService.send(toList, title, body, data)
+            IF sonuc = SUCCESS 
+                DONDER TRUE
+        HATA
+            deneme ← deneme + 1
+            sleep(1000 * deneme) // artan bekleme
+    DONDER FALSE
+
+FONKSİYON triggerAlarm(alarmType)
+    // Siren, ışık, kamera kayıt, otomatik kapı kilitleme vb.
+    alarmController.activate(alarmType)
+    logEvent({type: "ALARM_TRIGGERED", alarmType: alarmType, time: now()})
+    // otomatk durdurma mekanizması
+    alarmEndTime ← now() + ALARM_DURATION
+    WHILE now() < alarmEndTime AND systemState != "ALARM_SILENCED"
+        sleep(500)
+    alarmController.deactivate(alarmType)
+    logEvent({type: "ALARM_ENDED", alarmType: alarmType, time: now()})
+
+FONKSİYON classifyThreat(sensorReadings) → threat
+    // Basit kurallar; ML varsa burası sorunsuzca değişir
+    EĞER sensorReadings.contains(smoke) VE smoke.level >= SMOKE_THRESHOLD İSE
+        DONDER {level: "CRITICAL", category: "YANGIN", sources: [...]}
+    EĞER sensorReadings.contains(co) VE co.ppm >= CO_THRESHOLD İSE
+        DONDER {level: "CRITICAL", category: "ZEHIRLENME", sources: [...]}
+    EĞER motionDetected VE doorContactOpen VE saat_gece_ise İSE
+        DONDER {level: "HIGH", category: "IZINSIZ_GIRIS", sources: [...]}
+    EĞER motionDetected SADECE İSE
+        DONDER {level: "MEDIUM", category: "HAREKET", sources: [...]}
+    DONDER NULL
+
+FONKSİYON checkSensorHealth()
+    FOR each sensor IN sensörler
+        IF now() - sensor.lastSeen > SENSOR_TIMEOUT
+            sensor.healthy ← FALSE
+            logEvent({type:"SENSOR_TIMEOUT", id: sensor.id, time: now()})
+        ELSE sensor.healthy ← TRUE
+
+// --- ANA DÖNGÜ ---
+DÖNGÜ sistemDurumu = "AKTIF"
+    // kullanıcının sistemi kapatıp kapatmadığını kontrol et
+    EĞER kullanıcıOnaylıDevreDisi = EVET İSE
+        sleep(POLLING_INTERVAL)
+        DEVAM ET
+
+    // 1) Sensörleri oku
+    sensorReads ← boş liste
+    FOR each sensor IN sensörler
+        result ← readSensor(sensor)
+        EĞER result.ok = TRUE İSE
+            sensor.lastSeen ← result.timestamp
+            sensor.healthy ← TRUE
+            sensorReads.append({id: sensor.id, type: sensor.type, value: result.value, time: result.timestamp})
+        DEĞILSE
+            sensor.healthy ← FALSE
+            logEvent({type:"SENSOR_READ_FAIL", id: sensor.id, time: now()})
+        FİN
+
+    // 1.1) Sensör sağlığı denetimi periyodik olarak yap (ör. her döngü)
+    checkSensorHealth()
+
+    // 2) Tehdit algılama / sınıflandırma
+    threat ← classifyThreat(sensorReads)
+
+    EĞER threat != NULL İSE
+        eventKey ← threat.category + "_" + threat.level
+        logEvent({type:"THREAT_DETECTED", threat: threat, time: now()})
+
+        // 2.1) Yanlış pozitif azaltma (örnek: hareket dedektöründe gece/gündüz, kamera doğrulama)
+        EĞER threat.category = "HAREKET" VE kamera_varsa DOĞRULA İSE
+            kamImage ← camera.captureRelevantFrames()
+            doğrulama ← analyzeImageForHuman(kamImage)
+            EĞER doğrulama = FALSE İSE
+                // olası yanlış pozitif: bildirim sınırlandırılabilir
+                logEvent({type:"FALSE_POSITIVE_SUSPECT", detail: sensorReads, time: now()})
+                // küçük bildirim veya bekle
+                IF NOT isRateLimited(eventKey)
+                    sendNotification(userContacts, "Hareket Algılandı (şüpheli)", "Sistemde şüpheli hareket algılandı, doğrulama bekleniyor", {threat})
+                    updateNotificationTime(eventKey)
+                FİN
+                GIT main_loop_continue
+            FİN
+        FİN
+
+        // 3) Alarm verme kararı & uygulama
+        EĞER threat.level IN ["CRITICAL", "HIGH"] İSE
+            // Alarmı tetikle
+            triggerAlarm(threat.category)
+
+            // 4) Bildirim gönderme (kullanıcı, acil durum kontakları, güvenlik şirketi)
+            IF NOT isRateLimited(eventKey)
+                message ← formatThreatMessage(threat, sensorReads)
+                başarı ← sendNotification(userContacts + emergencyContacts, "Acil: " + threat.category, message, {threat, sensorReads})
+                IF başarı = TRUE
+                    updateNotificationTime(eventKey)
+                ELSE
+                    logEvent({type:"NOTIFICATION_FAILED", eventKey: eventKey, time: now()})
+                FİN
+            FİN
+
+            // 4.1) Gerekirse acil çağrı
+            IF threat.level = "CRITICAL" VE kullanıcıOnaylıDevreDisi = HAYIR İSE
+                callSuccess ← callEmergencyServices(threat, adresBilgisi)
+                IF callSuccess = TRUE
+                    logEvent({type:"EMERGENCY_CALL_PLACED", time: now()})
+                ELSE
+                    logEvent({type:"EMERGENCY_CALL_FAILED", time: now()})
+                FİN
+            FİN
+
+        EĞER threat.level = "MEDIUM" İSE
+            // Sakin bildirim / bekle / kullanıcıya onay sor
+            IF NOT isRateLimited(eventKey)
+                sendNotification(userContacts, "Uyarı: " + threat.category, "Orta öncelikli tehdit algılandı. Kontrol ediniz.", {threat})
+                updateNotificationTime(eventKey)
+            FİN
+        FİN
+
+    DEĞILSE
+        // Normal durum: periyodik sağlık ve bağlantı kontrolleri
+        IF zaman % (60 * 1000) = 0 İSE  // her 60 saniyede bir
+            sendHeartbeatIfNeeded()
+            performScheduledMaintenanceChecks()
+        FİN
+    FİN
+
+    // 5) Kayıt & raporlama
+    flushLogsPeriodically()
+
+    // 6) Döngü bekle
+    sleep(POLLING_INTERVAL)
+DÖNGÜSONU
+
+// --- EK FONKSİYONLAR / NOTLAR ---
+FONKSİYON formatThreatMessage(threat, sensorReads)
+    mesaj ← "Tehdit tipi: " + threat.category + "\nSeviye: " + threat.level + "\nZaman: " + now() + "\nKaynaklar: " + listSources(sensorReads)
+    DONDER mesaj
+
+FONKSİYON sendHeartbeatIfNeeded()
+    // Sistem sağlığı ve bağlantı durumunu buluta bildir
+    status ← collectSystemStatus()
+    cloud.send("heartbeat", status)
+
+FONKSİYON performScheduledMaintenanceChecks()
+    // Batarya seviyeleri, ağ bağlantısı, disk alanı, kamera kayıt sağlığı
+    health ← collectDetailedHealth()
+    IF health.hasCriticalIssues THEN
+        notifyAdmin(health.issues)
+
+BİTİŞ
+```
+
+İstersen:
+
+* Bu pseudocode’u daha ayrıntılı fonksiyonlara (ör. `analyzeImageForHuman`, `callEmergencyServices`) bölebilirim.
+* Belirli bir dilde (Python, JavaScript, C++) çalışacak şekilde gerçek kod haline dönüştüreyim.
+* Veya sistem davranışını senaryolara göre (yalancı alarm, güç kesintisi, zayıf bağlantı) test eden örnek akışlar yazayım.
+
+Hangi adımı ilerletmemi istersin?
+
+Anlamadım.Biraz daha basit anlatır mısın?
+
+Tabii 😊 daha basit ve anlaşılır bir şekilde yazalım.
+Aşağıdaki pseudocode, akıllı ev güvenlik sisteminin 7/24 çalışan temel mantığını gösteriyor.
+Sadece temel adımlar var: sensör okuma, tehdit algılama, alarm ve bildirim.
+
+🔹 Basit Pseudocode:
+BAŞLA
+
+TANIMLA sistemDurumu ← "AKTİF"
+
+DÖNGÜ sistemDurumu = "AKTİF" İKEN
+
+    // 1. Sensörleri oku
+    sensörVerisi ← SensörleriOku()
+
+    // 2. Tehdit algıla
+    EĞER sensörVerisi.tehditVar = EVET İSE
+
+        // 3. Alarmı çalıştır
+        AlarmÇalıştır()
+
+        // 4. Bildirim gönder
+        BildirimGönder("Tehdit algılandı! Alarm devrede!")
+
+    DEĞİLSE
+        // Tehdit yoksa sistem normal çalışmaya devam eder
+        EKRANA_YAZ "Her şey normal."
+    BİTİR
+
+    // 5. Bir süre bekle (örneğin 1 saniye)
+    BEKLE(1 saniye)
+
+DÖNGÜSONU
+
+BİTİR
+
+Tabii 😊 daha basit ve anlaşılır bir şekilde yazalım.
+Aşağıdaki pseudocode, **akıllı ev güvenlik sisteminin** 7/24 çalışan temel mantığını gösteriyor.
+Sadece temel adımlar var: sensör okuma, tehdit algılama, alarm ve bildirim.
+
+---
+
+### 🔹 Basit Pseudocode:
+
+```
+BAŞLA
+
+TANIMLA sistemDurumu ← "AKTİF"
+
+DÖNGÜ sistemDurumu = "AKTİF" İKEN
+
+    // 1. Sensörleri oku
+    sensörVerisi ← SensörleriOku()
+
+    // 2. Tehdit algıla
+    EĞER sensörVerisi.tehditVar = EVET İSE
+
+        // 3. Alarmı çalıştır
+        AlarmÇalıştır()
+
+        // 4. Bildirim gönder
+        BildirimGönder("Tehdit algılandı! Alarm devrede!")
+
+    DEĞİLSE
+        // Tehdit yoksa sistem normal çalışmaya devam eder
+        EKRANA_YAZ "Her şey normal."
+    BİTİR
+
+    // 5. Bir süre bekle (örneğin 1 saniye)
+    BEKLE(1 saniye)
+
+DÖNGÜSONU
+
+BİTİR
+```
+
+---
+
+### 🔹 Adım adım açıklama:
+
+1. **Sistem başlar** ve sürekli aktif kalır.
+2. Her döngüde sensörlerden (kapı, hareket, duman, su, vs.) veri okunur.
+3. Eğer bir sensör **tehdit** algılarsa (örneğin hareket veya duman):
+
+   * **Alarm çalışır** (siren veya ışık yanar).
+   * **Kullanıcıya bildirim gönderilir** (telefon uygulaması veya SMS).
+4. Eğer tehdit yoksa sistem sadece “Her şey normal” mesajını gösterir.
+5. 1 saniye bekler, sonra yeniden başa döner (yani 7/24 çalışır).
+
+---
+
+İstersen bu basit sürümü, şekiller (akış diyagramı) veya **Graphviz DOT** kodu şeklinde gösterebilirim.
+Hangisini istersin — **akış diyagramı mı**, yoksa **biraz daha gelişmiş pseudocode** mu?
+
+Akıllı ev güvenlik sistemi 7/24 çalışır. Ana döngü içinde sensör okuma,tehdit algılama, alarm verme ve bildirim gönderme süreçlerini içeren basit bir pseudocode yaz.
+
+Tabii 😊 işte akıllı ev güvenlik sistemi için sade ve anlaşılır bir pseudocode:
+
+BAŞLA
+
+TANIMLA sistemDurumu ← "AKTİF"
+
+DÖNGÜ sistemDurumu = "AKTİF" İKEN
+
+    // 1. Sensör verilerini oku
+    sensörVerisi ← SensörOku()
+
+    // 2. Tehdit algıla
+    EĞER sensörVerisi.tehditVar = EVET İSE
+
+        // 3. Alarmı çalıştır
+        AlarmÇalıştır()
+
+        // 4. Bildirim gönder
+        BildirimGönder("Tehdit algılandı! Alarm devrede!")
+
+    DEĞİLSE
+        YAZ "Sistem normal çalışıyor."
+
+    BİTİR_EĞER
+
+    // 5. Kısa süre bekle (örnek: 1 saniye)
+    BEKLE(1 saniye)
+
+DÖNGÜSONU
+
+BİTİR
+
+Tabii 😊 işte **akıllı ev güvenlik sistemi** için sade ve anlaşılır bir **pseudocode**:
+
+---
+
+```
+BAŞLA
+
+TANIMLA sistemDurumu ← "AKTİF"
+
+DÖNGÜ sistemDurumu = "AKTİF" İKEN
+
+    // 1. Sensör verilerini oku
+    sensörVerisi ← SensörOku()
+
+    // 2. Tehdit algıla
+    EĞER sensörVerisi.tehditVar = EVET İSE
+
+        // 3. Alarmı çalıştır
+        AlarmÇalıştır()
+
+        // 4. Bildirim gönder
+        BildirimGönder("Tehdit algılandı! Alarm devrede!")
+
+    DEĞİLSE
+        YAZ "Sistem normal çalışıyor."
+
+    BİTİR_EĞER
+
+    // 5. Kısa süre bekle (örnek: 1 saniye)
+    BEKLE(1 saniye)
+
+DÖNGÜSONU
+
+BİTİR
+```
+
+---
+
+### 🧠 Açıklaması:
+
+* Sistem sürekli (7/24) çalışır.
+* Her döngüde sensörlerden veri okunur (örneğin kapı, hareket, duman).
+* Eğer sensör “tehdit var” derse → alarm devreye girer ve bildirim gönderilir.
+* Eğer tehdit yoksa → sistem sadece “normal” mesajı verir.
+* 1 saniye beklenip tekrar başa dönülür.
+
+---
+
+İstersen bu pseudocode’u **akış diyagramına** çevirebilirim (örneğin Graphviz DOT diliyle).
+İster misin o şekilde göstereyim?
+
+Bu pseudocode u DOT diline çevir.Sonsuz döngü olsun ve sonsuz döngüyü göstermek için geri ok kullanılsın ve ”Sürekli” etiketi ekleyin
+
+Tabii 😊 işte verdiğin akıllı ev güvenlik sistemi pseudocode’unun
+Graphviz DOT diliyle yazılmış hali — içinde sonsuz döngü (geri ok ve “Sürekli” etiketi) gösterilmiştir:
+
+digraph AkilliEvGuvenlikSistemi {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontsize=12];
+
+    basla [label="BAŞLA", shape=ellipse];
+    sensor [label="Sensör verilerini oku", shape=parallelogram];
+    kontrol [label="Tehdit algılandı mı?", shape=diamond];
+    alarm [label="Alarmı çalıştır", shape=box];
+    bildirim [label="Bildirim gönder", shape=box];
+    normal [label="Sistem normal çalışıyor", shape=box];
+    bekle [label="1 saniye bekle", shape=box];
+
+    basla -> sensor;
+    sensor -> kontrol;
+
+    kontrol -> alarm [label="Evet"];
+    alarm -> bildirim;
+    bildirim -> bekle;
+
+    kontrol -> normal [label="Hayır"];
+    normal -> bekle;
+
+    bekle -> sensor [label="Sürekli", color=blue];
+
+}
+
+Tabii 😊 işte verdiğin **akıllı ev güvenlik sistemi pseudocode’unun**
+**Graphviz DOT diliyle** yazılmış hali — içinde **sonsuz döngü (geri ok ve “Sürekli” etiketi)** gösterilmiştir:
+
+---
+
+```dot
+digraph AkilliEvGuvenlikSistemi {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontsize=12];
+
+    basla [label="BAŞLA", shape=ellipse];
+    sensor [label="Sensör verilerini oku", shape=parallelogram];
+    kontrol [label="Tehdit algılandı mı?", shape=diamond];
+    alarm [label="Alarmı çalıştır", shape=box];
+    bildirim [label="Bildirim gönder", shape=box];
+    normal [label="Sistem normal çalışıyor", shape=box];
+    bekle [label="1 saniye bekle", shape=box];
+
+    basla -> sensor;
+    sensor -> kontrol;
+
+    kontrol -> alarm [label="Evet"];
+    alarm -> bildirim;
+    bildirim -> bekle;
+
+    kontrol -> normal [label="Hayır"];
+    normal -> bekle;
+
+    bekle -> sensor [label="Sürekli", color=blue];
+
+}
+```
+
+---
+
+### 🔹 Açıklama:
+
+* **`rankdir=TB`** → yukarıdan aşağıya akış.
+* **Elips** = Başlangıç,
+* **Paralelkenar** = Girdi/çıktı (sensör okuma),
+* **Baklava (diamond)** = Koşul (tehdit algılandı mı?),
+* **Kutu (box)** = İşlem (alarm, bildirim, bekleme).
+* **Mavi “Sürekli” etiketiyle** geri ok, **sonsuz döngüyü** temsil eder (sistem 7/24 çalışır).
+
+---
+
+İstersen bu diyagramı **okların kesişmeden** çizileceği biçimde düzenleyebilirim veya **renkli** hale getirebilirim.
+Hangisini istersin?
+
+Olur
+
+Harika 😊
+İşte okların kesişmediği, daha düzenli ve renkli biçimde hazırlanmış Graphviz DOT kodu:
+(sistem 7/24 “Sürekli” çalışır — geri okla gösterilmiştir)
+
+digraph AkilliEvGuvenlikSistemi {
+    rankdir=TB;
+    fontsize=12;
+    node [style=rounded, fontname="Arial"];
+
+    // --- Düğümler ---
+    basla [label="BAŞLA", shape=ellipse, style=filled, fillcolor=lightgreen];
+    sensor [label="Sensör verilerini oku", shape=parallelogram, style=filled, fillcolor=lightyellow];
+    kontrol [label="Tehdit algılandı mı?", shape=diamond, style=filled, fillcolor=lightblue];
+    alarm [label="Alarmı çalıştır", shape=box, style=filled, fillcolor=lightcoral];
+    bildirim [label="Bildirim gönder", shape=box, style=filled, fillcolor=orange];
+    normal [label="Sistem normal çalışıyor", shape=box, style=filled, fillcolor=white];
+    bekle [label="1 saniye bekle", shape=box, style=filled, fillcolor=lightgray];
+
+    // --- Akış ---
+    basla -> sensor;
+    sensor -> kontrol;
+
+    // Evet yolu (tehdit var)
+    kontrol -> alarm [label="Evet", color=red];
+    alarm -> bildirim;
+    bildirim -> bekle;
+
+    // Hayır yolu (tehdit yok)
+    kontrol -> normal [label="Hayır", color=green];
+    normal -> bekle;
+
+    // Sonsuz döngü (geri dönüş)
+    bekle -> sensor [label="Sürekli", color=blue, fontcolor=blue, style=bold];
+
+    // --- Düzenleme ---
+    {rank=same; alarm; normal;}
+}
+
+🔹 Özellikler:
+Renkli ve sade görünümlü.
+Oklar kesişmez, çünkü dallar yatay hizalandı.
+“Sürekli” etiketi sonsuz döngüyü temsil eder.
+Her adım, pseudocode’daki sırayı birebir korur.
+
+Anlamadım.Biraz daha basit anlatır mısın?
